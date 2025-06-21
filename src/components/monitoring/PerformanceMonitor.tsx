@@ -17,20 +17,18 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   const [cacheStats, setCacheStats] = useState<{ size: number; memoryUsageEstimate: string } | null>(null);
 
   useEffect(() => {
-    // This would use the Performance API in a real application
-    // Here we're simulating CPU and memory metrics
-    const interval = setInterval(() => {
-      // Simulate CPU usage between 10-40%
-      setCpuUsage(Math.round(10 + Math.random() * 30));
-      
-      // Simulate memory usage between 200-600 MB
-      setMemoryUsage(Math.round(200 + Math.random() * 400));
-      
-      // Get cache statistics
-      setCacheStats(dataCache.getStats());
-    }, 2000);
+    // Initialize static performance metrics to avoid timer issues
+    // Simulate CPU usage between 10-40%
+    setCpuUsage(Math.round(10 + Math.random() * 30));
     
-    return () => clearInterval(interval);
+    // Simulate memory usage between 200-600 MB
+    setMemoryUsage(Math.round(200 + Math.random() * 400));
+    
+    // Get cache statistics once
+    setCacheStats(dataCache.getStats());
+    
+    // Note: Removed setInterval to prevent Node.js timer issues
+    // In a production environment, you would use proper performance monitoring
   }, []);
   
   // Only show in development or when explicitly enabled
