@@ -39,11 +39,11 @@ class ExternalAPIService {
   private constructor() {
     // Initialize API keys from environment or secure storage
     this.apiKeys = {
-      ups: process.env.UPS_API_KEY || '',
-      fedex: process.env.FEDEX_API_KEY || '',
-      weather: process.env.WEATHER_API_KEY || '',
-      graphhopper: process.env.GRAPHHOPPER_API_KEY || '',
-      ethereum: process.env.ETHEREUM_RPC_URL || ''
+      ups: import.meta.env.VITE_UPS_API_KEY || '',
+      fedex: import.meta.env.VITE_FEDEX_API_KEY || '',
+      weather: import.meta.env.VITE_WEATHER_API_KEY || '',
+      graphhopper: import.meta.env.VITE_GRAPHHOPPER_API_KEY || '',
+      ethereum: import.meta.env.VITE_ETHEREUM_RPC_URL || ''
     };
   }
 
