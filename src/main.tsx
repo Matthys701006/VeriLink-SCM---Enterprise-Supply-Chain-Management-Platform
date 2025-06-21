@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { reportWebVitals } from 'web-vitals'
+import reportWebVitals from 'web-vitals'
 import './index.css'
 import App from './App.tsx'
 
