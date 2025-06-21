@@ -187,12 +187,13 @@ export const Warehouses: React.FC = () => {
           );
         })}
 
-        </div>
-      ) : (
+      ) : selectedView === 'operations' ? (
         selectedView === 'operations' ? (
           <PickPackWorkflow />
-        ) : <SensorDashboard warehouseId={selectedWarehouse || undefined} />
-      )}
+        ) : (
+          <SensorDashboard warehouseId={selectedWarehouse || undefined} />
+        )
+      }
 
       {selectedView === 'warehouses' && warehouses.length === 0 && (
         <div className="text-center py-12">

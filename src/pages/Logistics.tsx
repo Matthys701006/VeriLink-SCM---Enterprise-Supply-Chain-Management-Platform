@@ -29,7 +29,6 @@ export const Logistics: React.FC = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState<'shipments' | 'fleet' | 'routes'>('shipments');
-  const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [weatherData, setWeatherData] = useState<any>(null);
   const [sensorAlerts, setSensorAlerts] = useState<any[]>([]);
