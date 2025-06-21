@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Low-Stimulus Mode for Neuro-Inclusive Design */
+.low-stimulus-mode {
+  /* Reduce animations and transitions */
+}
+
+.low-stimulus-mode * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0.01ms !important;
+}
+
+.low-stimulus-mode :hover {
+  transform: none !important;
+}
+
+.low-stimulus-mode .animate-spin {
+  animation: none !important;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .bg-blue-100 {
+    @apply bg-blue-200;
+  }
+  .text-gray-600 {
+    @apply text-gray-800;
+  }
+  .text-gray-500 {
+    @apply text-gray-700;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0.01ms !important;
+  }
+}
