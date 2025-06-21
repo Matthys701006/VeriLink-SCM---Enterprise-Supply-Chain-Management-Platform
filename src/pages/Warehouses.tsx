@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { MapPin, Plus, Warehouse } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { PickPackWorkflow } from '../components/warehouse/PickPackWorkflow';
+import { SensorDashboard } from '../components/iot/SensorDashboard';
 
 interface WarehouseData {
   id: string;
@@ -18,7 +19,8 @@ interface WarehouseData {
 export const Warehouses: React.FC = () => {
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedView, setSelectedView] = useState<'warehouses' | 'operations'>('warehouses');
+  const [selectedView, setSelectedView] = useState<'warehouses' | 'operations' | 'iot'>('warehouses');
+  const [selectedWarehouse, setSelectedWarehouse] = useState<string | null>(null);
 
   useEffect(() => {
     loadWarehouses();
@@ -77,7 +79,7 @@ export const Warehouses: React.FC = () => {
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              Warehouses
+              Locations
             </button>
             <button
               onClick={() => setSelectedView('operations')}
@@ -88,6 +90,16 @@ export const Warehouses: React.FC = () => {
               }`}
             >
               Operations
+            </button>
+            <button
+              onClick={() => setSelectedView('iot')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                selectedView === 'iot'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              IoT Sensors
             </button>
           </div>
           {selectedView === 'warehouses' && (
@@ -113,6 +125,7 @@ export const Warehouses: React.FC = () => {
               className={`bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow ${
                 warehouse.is_active ? '' : 'opacity-60'
               }`}
+              onClick={() => setSelectedWarehouse(warehouse.id)}
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center">
@@ -176,7 +189,9 @@ export const Warehouses: React.FC = () => {
 
         </div>
       ) : (
-        <PickPackWorkflow />
+        {selectedView === 'operations' ? (
+          <PickPackWorkflow />
+        ) : <SensorDashboard warehouseId={selectedWarehouse || undefined} />}
       )}
 
       {selectedView === 'warehouses' && warehouses.length === 0 && (
