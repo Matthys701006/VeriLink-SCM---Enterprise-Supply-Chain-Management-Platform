@@ -11,7 +11,10 @@ import {
   Package,
   Navigation,
   Fuel,
-  Thermometer
+  Thermometer,
+  Cloud,
+  Zap,
+  TrendingUp
 } from 'lucide-react';
 import { useOrchestrix } from '../contexts/OrchestrixContext';
 import { supabase } from '../services/supabase/client';
@@ -31,7 +34,6 @@ export const Logistics: React.FC = () => {
   const [weatherData, setWeatherData] = useState<any>(null);
   const [sensorAlerts, setSensorAlerts] = useState<any[]>([]);
   const [optimizedRoutes, setOptimizedRoutes] = useState<any[]>([]);
-  const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
     if (organization?.id) {
