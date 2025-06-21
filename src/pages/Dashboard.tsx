@@ -5,6 +5,10 @@ import { WorkflowManager } from '../components/workflow/WorkflowManager';
 import { DocumentManager } from '../components/documents/DocumentManager';
 import { seedSampleData } from '../services/sampleData';
 import { useOrchestrix } from '../contexts/OrchestrixContext';
+import { usePerformance } from '../contexts/PerformanceContext';
+import { PerformanceMonitor } from '../components/monitoring/PerformanceMonitor';
+import { useTranslation } from 'react-i18next';
+import { RBACGuard, PermissionLevel } from '../components/security/RBACGuard';
 
 interface DashboardStats {
   totalItems: number;
@@ -15,6 +19,8 @@ interface DashboardStats {
 
 export const Dashboard: React.FC = () => {
   const { organization, enhancedUser } = useOrchestrix();
+  const { recordPageLoad, recordRender } = usePerformance();
+  const { t } = useTranslation();
   const [stats, setStats] = useState<DashboardStats>({
     totalItems: 0,
     lowStockItems: 0,
@@ -25,9 +31,22 @@ export const Dashboard: React.FC = () => {
   const [selectedWidget, setSelectedWidget] = useState<'overview' | 'workflows' | 'documents'>('overview');
   const [sampleDataLoaded, setSampleDataLoaded] = useState(false);
 
+  // Record component rendering time
+  const renderStartTime = performance.now();
+
   useEffect(() => {
     loadDashboardData();
     checkSampleData();
+    
+    // Record page load time
+    const loadTime = performance.now() - renderStartTime;
+    recordPageLoad(loadTime);
+    
+    return () => {
+      // Record render time when component unmounts
+      const renderTime = performance.now() - renderStartTime;
+      recordRender(renderTime);
+    };
   }, []);
 
   const checkSampleData = async () => {
@@ -143,7 +162,7 @@ export const Dashboard: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Overview of your VeriLink SCM enterprise platform</p>
+        <p className="text-gray-600">{t('common.dashboardOverview')}</p>
       </div>
       {!sampleDataLoaded && (
         <button
@@ -220,7 +239,7 @@ export const Dashboard: React.FC = () => {
               </div>
 
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.quickActions')}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <button className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors">
                     <Package className="w-8 h-8 text-gray-400 mx-auto mb-2" />
@@ -244,6 +263,11 @@ export const Dashboard: React.FC = () => {
           )}
         </div>
       </div>
+      
+      {/* Add Performance Monitor for admins and in development mode */}
+      {(process.env.NODE_ENV === 'development' || enhancedUser?.role === 'admin') && (
+        <PerformanceMonitor showDetailed={true} />
+      )}
     </div>
   );
 };

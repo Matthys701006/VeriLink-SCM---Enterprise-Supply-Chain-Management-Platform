@@ -11,6 +11,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../services/supabase/client';
+import { usePerformance } from '../../contexts/PerformanceContext';
+import { useTranslation } from 'react-i18next';
+import { rbacService } from '../../services/security/RBACService';
 
 interface EnhancedAuthProps {
   onSuccess?: () => void;
@@ -26,6 +29,8 @@ interface LoginAttempt {
 
 export const EnhancedAuth: React.FC<EnhancedAuthProps> = ({ onSuccess, onError }) => {
   const { user } = useAuth();
+  const { recordApiCall } = usePerformance();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -183,6 +188,18 @@ export const EnhancedAuth: React.FC<EnhancedAuthProps> = ({ onSuccess, onError }
           recordLoginAttempt(email, false);
           throw error;
         }
+
+        // Check if user requires MFA (mandatory for admin roles)
+        if (!mfaCode && userData) {
+          const requiresMFA = await rbacService.userRequiresMFA(userData.id);
+          if (requiresMFA && !userData.mfa_enabled) {
+            // Redirect to MFA setup
+            console.log('Admin role requires MFA setup');
+            // In a real implementation, would redirect to MFA setup page
+            // or show MFA setup component
+            return;
+          }
+        }
         
         recordLoginAttempt(email, true);
         
@@ -223,10 +240,25 @@ export const EnhancedAuth: React.FC<EnhancedAuthProps> = ({ onSuccess, onError }
       setLoading(true);
       
       // Mock MFA verification - in real app would verify TOTP code
-      if (mfaCode.length === 6 && /^\d+$/.test(mfaCode)) {
-        onSuccess?.();
-      } else {
-        setErrors({ mfa: 'Invalid MFA code' });
+      try {
+        const startTime = performance.now();
+        
+        if (mfaCode.length === 6 && /^\d+$/.test(mfaCode)) {
+          // In real implementation, would verify with backend
+          const valid = true; // Mock response
+          
+          recordApiCall('verify-mfa', performance.now() - startTime);
+          
+          if (valid) {
+            onSuccess?.();
+          } else {
+            setErrors({ mfa: t('auth.invalidCode') });
+          }
+        } else {
+          setErrors({ mfa: t('auth.invalidCode') });
+        }
+      } catch (error) {
+        setErrors({ mfa: error.message });
       }
       
     } catch (error: any) {
@@ -257,11 +289,11 @@ export const EnhancedAuth: React.FC<EnhancedAuthProps> = ({ onSuccess, onError }
   if (showMfa) {
     return (
       <div className="space-y-6">
-        <div className="text-center">
-          <Shield className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900">Two-Factor Authentication</h2>
-          <p className="text-gray-600 mt-2">Enter the 6-digit code from your authenticator app</p>
-        </div>
+         <div className="text-center">
+           <Shield className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+           <h2 className="text-2xl font-bold text-gray-900">{t('auth.twoFactorAuth')}</h2>
+           <p className="text-gray-600 mt-2">{t('auth.enterCode')}</p>
+         </div>
 
         <form onSubmit={handleMfaVerification} className="space-y-4">
           {errors.mfa && (
@@ -272,7 +304,7 @@ export const EnhancedAuth: React.FC<EnhancedAuthProps> = ({ onSuccess, onError }
 
           <div>
             <label htmlFor="mfaCode" className="block text-sm font-medium text-gray-700 mb-2">
-              Authentication Code
+              {t('auth.verificationCode')}
             </label>
             <input
               id="mfaCode"
@@ -296,7 +328,7 @@ export const EnhancedAuth: React.FC<EnhancedAuthProps> = ({ onSuccess, onError }
             ) : (
               <>
                 <Smartphone className="w-5 h-5 mr-2" />
-                Verify Code
+                {t('auth.verifyCode')}
               </>
             )}
           </button>

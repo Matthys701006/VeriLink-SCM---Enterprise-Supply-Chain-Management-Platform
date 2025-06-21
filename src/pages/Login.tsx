@@ -1,12 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { GitHubSSO } from '../components/auth/GitHubSSO';
 import { EnhancedAuth } from '../components/auth/EnhancedAuth';
 import { Package, Eye, EyeOff } from 'lucide-react';
+import { usePerformance } from '../contexts/PerformanceContext';
+import { useTranslation } from 'react-i18next';
 
 export const Login: React.FC = () => {
   const { user, loading } = useAuth();
+  const { recordPageLoad } = usePerformance();
+  const { t } = useTranslation();
+  
+  // Record page load time once components are mounted
+  useEffect(() => {
+    if (!loading) {
+      const loadTime = performance.now();
+      recordPageLoad(loadTime);
+    }
+  }, [loading, recordPageLoad]);
 
   if (loading) {
     return (
@@ -28,9 +40,7 @@ export const Login: React.FC = () => {
             <Package className="h-12 w-12 text-blue-600" />
           </div>
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">VeriLink SCM</h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Enterprise Supply Chain Management Platform
-          </p>
+          <p className="mt-2 text-sm text-gray-600">{t('common.platformName')}</p>
         </div>
 
         <div className="space-y-6">
@@ -41,7 +51,7 @@ export const Login: React.FC = () => {
               <div className="w-full border-t border-gray-300" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-50 text-gray-500">Or continue with email</span>
+              <span className="px-2 bg-gray-50 text-gray-500">{t('auth.orContinueWith')}</span>
             </div>
           </div>
 
