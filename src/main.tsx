@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 
+console.log('main.tsx is executing')
+
 // Report web vitals for performance monitoring - only in browser environment
 const reportWebVitalsCallback = (metric: any) => {
   // In development, log to console
@@ -43,11 +45,15 @@ const reportWebVitalsCallback = (metric: any) => {
   }
 };
 
+console.log('Creating root element and rendering App')
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>,
 );
+
+console.log('App has been rendered to the DOM')
 
 // Only load and execute web-vitals in browser environment
 if (typeof window !== 'undefined') {
@@ -69,3 +75,6 @@ if (typeof window !== 'undefined') {
     console.warn('Failed to load web-vitals:', error);
   });
 }
+
+// Verify the root element exists
+console.log('Root element:', document.getElementById('root'))
