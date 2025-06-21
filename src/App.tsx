@@ -22,11 +22,11 @@ import './services/i18n/i18n';
 
 function App() {
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <OrchestrixProvider>
-          <PerformanceProvider>
-            <BrowserRouter>
+    <BrowserRouter>
+      <ErrorBoundary>
+        <AuthProvider>
+          <OrchestrixProvider>
+            <PerformanceProvider>
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/" element={
@@ -36,82 +36,82 @@ function App() {
                     </EnhancedLayout>
                   </ProtectedRoute>
                 } />
-            <Route path="/inventory" element={
-              <ProtectedRoute>
-                <EnhancedLayout>
-                  <Inventory />
-                </EnhancedLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/warehouses" element={
-              <ProtectedRoute>
-                <EnhancedLayout>
-                  <Warehouses />
-                </EnhancedLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/procurement" element={
-              <ProtectedRoute>
-                <EnhancedLayout>
-                  <Procurement />
-                </EnhancedLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/logistics" element={
-              <ProtectedRoute>
-                <EnhancedLayout>
-                  <Logistics />
-                </EnhancedLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/finance" element={
-              <ProtectedRoute>
-                <EnhancedLayout>
-                  <Finance />
-                </EnhancedLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/analytics" element={
-              <ProtectedRoute>
-                <EnhancedLayout>
-                  <Analytics />
-                </EnhancedLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/forecasting" element={
-              <ProtectedRoute>
-                <EnhancedLayout>
-                  <Forecasting />
-                </EnhancedLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/returns" element={
-              <ProtectedRoute>
-                <EnhancedLayout>
-                  <Returns />
-                </EnhancedLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/hr" element={
-              <ProtectedRoute>
-                <EnhancedLayout>
-                  <HR />
-                </EnhancedLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/compliance" element={
-              <ProtectedRoute>
-                <EnhancedLayout>
-                  <Compliance />
-                </EnhancedLayout>
-              </ProtectedRoute>
-            } />
-          </Routes>
-            </BrowserRouter>
-          </PerformanceProvider>
-        </OrchestrixProvider>
-      </AuthProvider>
-    </ErrorBoundary>
+                <Route path="/inventory" element={
+                  <ProtectedRoute>
+                    <EnhancedLayout>
+                      <Inventory />
+                    </EnhancedLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/warehouses" element={
+                  <ProtectedRoute>
+                    <EnhancedLayout>
+                      <Warehouses />
+                    </EnhancedLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/procurement" element={
+                  <ProtectedRoute>
+                    <EnhancedLayout>
+                      <Procurement />
+                    </EnhancedLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/logistics" element={
+                  <ProtectedRoute>
+                    <EnhancedLayout>
+                      <Logistics />
+                    </EnhancedLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/finance" element={
+                  <ProtectedRoute>
+                    <EnhancedLayout>
+                      <Finance />
+                    </EnhancedLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/analytics" element={
+                  <ProtectedRoute>
+                    <EnhancedLayout>
+                      <Analytics />
+                    </EnhancedLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/forecasting" element={
+                  <ProtectedRoute>
+                    <EnhancedLayout>
+                      <Forecasting />
+                    </EnhancedLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/returns" element={
+                  <ProtectedRoute>
+                    <EnhancedLayout>
+                      <Returns />
+                    </EnhancedLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/hr" element={
+                  <ProtectedRoute>
+                    <EnhancedLayout>
+                      <HR />
+                    </EnhancedLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/compliance" element={
+                  <ProtectedRoute>
+                    <EnhancedLayout>
+                      <Compliance />
+                    </EnhancedLayout>
+                  </ProtectedRoute>
+                } />
+              </Routes>
+            </PerformanceProvider>
+          </OrchestrixProvider>
+        </AuthProvider>
+      </ErrorBoundary>
+    </BrowserRouter>
   );
 }
 
