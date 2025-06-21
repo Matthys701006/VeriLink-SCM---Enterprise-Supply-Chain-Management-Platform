@@ -3,6 +3,8 @@ import { Search, Filter, Plus, ShoppingCart, AlertTriangle, TrendingUp, CheckCir
 import { useOrchestrix } from '../contexts/OrchestrixContext';
 import { supabase } from '../services/supabase/client';
 import { PurchaseOrder, Supplier } from '../types/orchestrix';
+import { POCreationForm } from '../components/procurement/POCreationForm';
+import { ApprovalWorkflow } from '../components/procurement/ApprovalWorkflow';
 
 export const Procurement: React.FC = () => {
   const { hasPermission, organization } = useOrchestrix();
@@ -12,6 +14,9 @@ export const Procurement: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<'orders' | 'suppliers'>('orders');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
 
   useEffect(() => {
     if (organization?.id) {
@@ -139,7 +144,10 @@ export const Procurement: React.FC = () => {
           <p className="text-gray-600">Manage purchase orders and supplier relationships</p>
         </div>
         {hasPermission('procurement.write') && (
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+          <button 
+            onClick={() => setShowCreateForm(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
             <Plus className="w-4 h-4" />
             Create PO
           </button>
@@ -288,10 +296,16 @@ export const Procurement: React.FC = () => {
                           <div className="text-sm text-gray-500">{po.suppliers?.code}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(po.status)}`}>
+                          <button
+                            onClick={() => {
+                              setSelectedPO(po);
+                              setShowApprovalModal(true);
+                            }}
+                            className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full hover:opacity-80 ${getStatusColor(po.status)}`}
+                          >
                             <StatusIcon className="w-3 h-3 mr-1" />
                             {po.status.toUpperCase()}
-                          </span>
+                          </button>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           ${po.total_amount.toLocaleString()} {po.currency}
@@ -397,6 +411,27 @@ export const Procurement: React.FC = () => {
           <p className="text-gray-500">No {selectedTab} found matching your criteria</p>
         </div>
       )}
+
+      {/* PO Creation Form */}
+      <POCreationForm
+        isOpen={showCreateForm}
+        onClose={() => setShowCreateForm(false)}
+        onSuccess={() => {
+          setShowCreateForm(false);
+          loadData();
+        }}
+      />
+
+      {/* Approval Workflow Modal */}
+      <ApprovalWorkflow
+        isOpen={showApprovalModal}
+        onClose={() => setShowApprovalModal(false)}
+        purchaseOrder={selectedPO}
+        onApprovalComplete={() => {
+          setShowApprovalModal(false);
+          loadData();
+        }}
+      />
     </div>
   );
 };

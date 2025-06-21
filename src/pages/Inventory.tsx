@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Filter, Plus, Package } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
+import { useInventoryWebSocket } from '../hooks/useWebSocket';
 
 interface InventoryItem {
   id: string;
@@ -25,10 +26,33 @@ export const Inventory: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [realTimeUpdates, setRealTimeUpdates] = useState(0);
+  
+  // WebSocket for real-time updates
+  const { connectionStatus, subscribeToInventoryUpdates } = useInventoryWebSocket();
 
   useEffect(() => {
     loadInventoryItems();
+    
+    // Subscribe to real-time inventory updates
+    const unsubscribe = subscribeToInventoryUpdates((update) => {
+      handleInventoryUpdate(update);
+    });
+    
+    return unsubscribe;
   }, []);
+
+  const handleInventoryUpdate = (update: any) => {
+    // Update inventory items in real-time
+    setItems(prevItems => 
+      prevItems.map(item => 
+        item.id === update.item_id 
+          ? { ...item, ...update.changes }
+          : item
+      )
+    );
+    setRealTimeUpdates(prev => prev + 1);
+  };
 
   const loadInventoryItems = async () => {
     try {
@@ -92,7 +116,23 @@ export const Inventory: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Inventory</h1>
-          <p className="text-gray-600">Manage your inventory items</p>
+          <div className="flex items-center gap-3">
+            <p className="text-gray-600">Manage your inventory items</p>
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${
+                connectionStatus === 'connected' ? 'bg-green-500' : 
+                connectionStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
+              }`}></div>
+              <span className="text-xs text-gray-500">
+                {connectionStatus === 'connected' ? 'Live' : connectionStatus}
+              </span>
+              {realTimeUpdates > 0 && (
+                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                  {realTimeUpdates} updates
+                </span>
+              )}
+            </div>
+          </div>
         </div>
         <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
           <Plus className="w-4 h-4" />

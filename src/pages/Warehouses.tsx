@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { MapPin, Plus, Warehouse } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
+import { PickPackWorkflow } from '../components/warehouse/PickPackWorkflow';
 
 interface WarehouseData {
   id: string;
@@ -17,6 +18,7 @@ interface WarehouseData {
 export const Warehouses: React.FC = () => {
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedView, setSelectedView] = useState<'warehouses' | 'operations'>('warehouses');
 
   useEffect(() => {
     loadWarehouses();
@@ -62,16 +64,43 @@ export const Warehouses: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Warehouses</h1>
-          <p className="text-gray-600">Manage your warehouse locations</p>
+          <h1 className="text-2xl font-bold text-gray-900">Warehouse Management</h1>
+          <p className="text-gray-600">Manage locations and operations</p>
         </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Add Warehouse
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setSelectedView('warehouses')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                selectedView === 'warehouses'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Warehouses
+            </button>
+            <button
+              onClick={() => setSelectedView('operations')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                selectedView === 'operations'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Operations
+            </button>
+          </div>
+          {selectedView === 'warehouses' && (
+            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Add Warehouse
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {selectedView === 'warehouses' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {warehouses.map((warehouse) => {
           const utilizationPercentage = getUtilizationPercentage(
             warehouse.used_capacity,
@@ -144,9 +173,13 @@ export const Warehouses: React.FC = () => {
             </div>
           );
         })}
-      </div>
 
-      {warehouses.length === 0 && (
+        </div>
+      ) : (
+        <PickPackWorkflow />
+      )}
+
+      {selectedView === 'warehouses' && warehouses.length === 0 && (
         <div className="text-center py-12">
           <Warehouse className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-500">No warehouses found</p>
