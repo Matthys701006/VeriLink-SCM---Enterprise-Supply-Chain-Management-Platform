@@ -10,6 +10,10 @@ import { Procurement } from './pages/Procurement';
 import { Logistics } from './pages/Logistics';
 import { Finance } from './pages/Finance';
 import { Analytics } from './pages/Analytics';
+import { Forecasting } from './pages/Forecasting';
+import { Returns } from './pages/Returns';
+import { HR } from './pages/HR';
+import { Compliance } from './pages/Compliance';
 import { EnhancedLayout } from './components/layout/EnhancedLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
@@ -66,6 +70,34 @@ function App() {
               <ProtectedRoute>
                 <EnhancedLayout>
                   <Analytics />
+                </EnhancedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/forecasting" element={
+              <ProtectedRoute>
+                <EnhancedLayout>
+                  <Forecasting />
+                </EnhancedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/returns" element={
+              <ProtectedRoute>
+                <EnhancedLayout>
+                  <Returns />
+                </EnhancedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/hr" element={
+              <ProtectedRoute>
+                <EnhancedLayout>
+                  <HR />
+                </EnhancedLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/compliance" element={
+              <ProtectedRoute>
+                <EnhancedLayout>
+                  <Compliance />
                 </EnhancedLayout>
               </ProtectedRoute>
             } />
