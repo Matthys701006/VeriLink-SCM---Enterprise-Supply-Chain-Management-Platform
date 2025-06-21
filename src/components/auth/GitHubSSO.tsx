@@ -13,7 +13,7 @@ export const GitHubSSO: React.FC<GitHubSSOProps> = ({ onSuccess, onError }) => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
-          redirectTo: `${window.location.origin}/success`
+          redirectTo: `${window.location.origin}/`
         }
       });
 

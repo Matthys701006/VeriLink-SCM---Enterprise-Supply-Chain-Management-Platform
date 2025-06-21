@@ -190,7 +190,7 @@ export const EnhancedAuth: React.FC<EnhancedAuthProps> = ({ onSuccess, onError }
         }
 
         // Check if user requires MFA (mandatory for admin roles)
-        if (!mfaCode && userData) {
+        if (!mfaCode) {
           const requiresMFA = await rbacService.userRequiresMFA(userData.id);
           if (requiresMFA && !userData.mfa_enabled) {
             // Redirect to MFA setup
@@ -205,12 +205,9 @@ export const EnhancedAuth: React.FC<EnhancedAuthProps> = ({ onSuccess, onError }
         
         // Check if MFA is required
         const { data: userData } = await supabase
-          .from('users')
-          .select('mfa_enabled')
-          .eq('email', email)
-          .single();
+          .auth.getUser();
         
-        if (userData?.mfa_enabled) {
+        if (userData?.data?.user?.user_metadata?.mfa_enabled) {
           setShowMfa(true);
         } else {
           onSuccess?.();

@@ -9,6 +9,11 @@ interface ProtectedRouteProps {
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, loading } = useAuth();
 
+  // Add console logs to help debug auth issues
+  useEffect(() => {
+    console.log('ProtectedRoute: Auth state', { user, loading });
+  }, [user, loading]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
