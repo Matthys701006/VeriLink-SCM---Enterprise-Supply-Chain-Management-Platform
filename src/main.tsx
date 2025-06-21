@@ -1,11 +1,10 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import * as webVitals from 'web-vitals'
 import './index.css'
 import App from './App.tsx'
 
-// Report web vitals for performance monitoring
-const reportWebVitalsCallback = (metric) => {
+// Report web vitals for performance monitoring - only in browser environment
+const reportWebVitalsCallback = (metric: any) => {
   // In development, log to console
   if (process.env.NODE_ENV === 'development') {
     console.log(metric);
@@ -50,16 +49,23 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>,
 );
 
-// Measure and report web vitals
-// Custom function to report all web vitals
-function reportWebVitals(onPerfEntry: any) {
-  if (onPerfEntry && typeof onPerfEntry === 'function') {
-    webVitals.getCLS(onPerfEntry);
-    webVitals.getFID(onPerfEntry);
-    webVitals.getLCP(onPerfEntry);
-    webVitals.getFCP(onPerfEntry);
-    webVitals.getTTFB(onPerfEntry);
-  }
-}
+// Only load and execute web-vitals in browser environment
+if (typeof window !== 'undefined') {
+  // Dynamic import to avoid loading during server-side execution
+  import('web-vitals').then((webVitals) => {
+    // Custom function to report all web vitals
+    function reportWebVitals(onPerfEntry: any) {
+      if (onPerfEntry && typeof onPerfEntry === 'function') {
+        webVitals.getCLS(onPerfEntry);
+        webVitals.getFID(onPerfEntry);
+        webVitals.getLCP(onPerfEntry);
+        webVitals.getFCP(onPerfEntry);
+        webVitals.getTTFB(onPerfEntry);
+      }
+    }
 
-reportWebVitals(reportWebVitalsCallback);
+    reportWebVitals(reportWebVitalsCallback);
+  }).catch((error) => {
+    console.warn('Failed to load web-vitals:', error);
+  });
+}
