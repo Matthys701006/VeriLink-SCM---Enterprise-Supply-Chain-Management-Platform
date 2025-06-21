@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { OrchestrixProvider } from './contexts/OrchestrixContext';
 import { PerformanceProvider } from './contexts/PerformanceContext';
@@ -26,7 +26,7 @@ function App() {
       <AuthProvider>
         <OrchestrixProvider>
           <PerformanceProvider>
-            <Router>
+            <BrowserRouter>
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/" element={
@@ -107,7 +107,7 @@ function App() {
               </ProtectedRoute>
             } />
           </Routes>
-            </Router>
+            </BrowserRouter>
           </PerformanceProvider>
         </OrchestrixProvider>
       </AuthProvider>
