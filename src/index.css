@@ -39,13 +39,23 @@ code {
 /* High contrast mode support */
 @media (prefers-contrast: high) {
   .bg-blue-100 {
-    @apply bg-blue-200;
+    @apply bg-blue-300;
   }
   .text-gray-600 {
-    @apply text-gray-800;
+    @apply text-gray-900;
   }
   .text-gray-500 {
-    @apply text-gray-700;
+    @apply text-gray-800;
+  }
+  
+  /* High contrast buttons */
+  .bg-blue-600 {
+    @apply bg-blue-800;
+  }
+  
+  /* Ensure sufficient contrast */
+  button, a {
+    @apply focus:ring-4 focus:ring-blue-400;
   }
 }
 
@@ -57,4 +67,39 @@ code {
     transition-duration: 0.01ms !important;
     transition-delay: 0.01ms !important;
   }
+}
+
+/* Additional high contrast mode styles */
+.high-contrast-mode {
+  --text-primary: #000;
+  --text-secondary: #000;
+  --background-primary: #fff;
+  --background-secondary: #f0f0f0;
+  --border-color: #000;
+  --focus-ring: #0000ff;
+  
+  color: var(--text-primary);
+  background-color: var(--background-primary);
+}
+
+.high-contrast-mode button,
+.high-contrast-mode a,
+.high-contrast-mode input,
+.high-contrast-mode select {
+  border: 1px solid var(--border-color) !important;
+}
+
+.high-contrast-mode button:focus,
+.high-contrast-mode a:focus,
+.high-contrast-mode input:focus,
+.high-contrast-mode select:focus {
+  outline: 2px solid var(--focus-ring) !important;
+  outline-offset: 2px !important;
+}
+
+/* Keyboard accessibility indicators */
+:focus-visible {
+  outline: 3px solid #0080ff !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
 }

@@ -12,6 +12,7 @@ interface OrchestrixContextType {
   loading: boolean;
   switchPersona: (personaId: string) => Promise<void>;
   refreshUserData: () => Promise<void>;
+  updateUserAccessibilitySettings: (settings: Record<string, boolean>) => Promise<void>;
 }
 
 const OrchestrixContext = createContext<OrchestrixContextType | undefined>(undefined);
@@ -140,6 +141,36 @@ export const OrchestrixProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
+  const updateUserAccessibilitySettings = async (settings: Record<string, boolean>): Promise<void> => {
+    try {
+      if (!enhancedUser?.id) return;
+      
+      // Update user settings in database
+      const { error } = await supabase
+        .from('users')
+        .update({
+          accessibility_settings: settings,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', enhancedUser.id);
+
+      if (error) throw error;
+      
+      // Update local state
+      setEnhancedUser(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          accessibility_settings: settings
+        };
+      });
+      
+    } catch (error) {
+      console.error('Error updating accessibility settings:', error);
+      throw error;
+    }
+  };
+
   const hasPermission = (permission: string): boolean => {
     return permissions.includes(permission) || permissions.includes('*');
   };
@@ -153,6 +184,7 @@ export const OrchestrixProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     loading,
     switchPersona,
     refreshUserData,
+    updateUserAccessibilitySettings
   };
 
   return (

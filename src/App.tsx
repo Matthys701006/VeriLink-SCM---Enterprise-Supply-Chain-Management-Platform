@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { OrchestrixProvider } from './contexts/OrchestrixContext';
+import { PerformanceProvider } from './contexts/PerformanceContext';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
 import { Inventory } from './pages/Inventory';
@@ -16,21 +17,25 @@ import { HR } from './pages/HR';
 import { Compliance } from './pages/Compliance';
 import { EnhancedLayout } from './components/layout/EnhancedLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import ErrorBoundary from './services/error/ErrorBoundary';
+import './services/i18n/i18n';
 
 function App() {
   return (
-    <AuthProvider>
-      <OrchestrixProvider>
-        <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <EnhancedLayout>
-                  <Dashboard />
-                </EnhancedLayout>
-              </ProtectedRoute>
-            } />
+    <ErrorBoundary>
+      <AuthProvider>
+        <OrchestrixProvider>
+          <PerformanceProvider>
+            <Router>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <EnhancedLayout>
+                      <Dashboard />
+                    </EnhancedLayout>
+                  </ProtectedRoute>
+                } />
             <Route path="/inventory" element={
               <ProtectedRoute>
                 <EnhancedLayout>
@@ -102,9 +107,11 @@ function App() {
               </ProtectedRoute>
             } />
           </Routes>
-        </Router>
-      </OrchestrixProvider>
-    </AuthProvider>
+            </Router>
+          </PerformanceProvider>
+        </OrchestrixProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOrchestrix } from '../../contexts/OrchestrixContext';
 import { PersonaSelector } from './PersonaSelector';
+import { AccessibilityPanel } from '../common/AccessibilityPanel';
 import { 
   Home, 
   Package, 
@@ -26,6 +27,7 @@ import {
   Search
 } from 'lucide-react';
 import { NotificationCenter } from '../notifications/NotificationCenter';
+import { useTranslation } from 'react-i18next';
 
 interface EnhancedLayoutProps {
   children: React.ReactNode;
@@ -36,9 +38,12 @@ export const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({ children }) => {
   const { persona, hasPermission, enhancedUser } = useOrchestrix();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [accessibilityPanelOpen, setAccessibilityPanelOpen] = React.useState(false);
   const [lowStimulusMode, setLowStimulusMode] = React.useState(
     enhancedUser?.accessibility_settings?.low_stimulus_mode || false
   );
+  const { t, i18n } = useTranslation();
+  const [currentLanguage, setCurrentLanguage] = React.useState(i18n.language || 'en');
 
   // Navigation items based on persona permissions
   const allNavigationItems = [
@@ -135,7 +140,7 @@ export const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({ children }) => {
   const toggleLowStimulusMode = () => {
     const newMode = !lowStimulusMode;
     setLowStimulusMode(newMode);
-    
+
     // Apply/remove CSS class for low stimulus mode
     if (newMode) {
       document.body.classList.add('low-stimulus-mode');
@@ -143,8 +148,20 @@ export const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({ children }) => {
       document.body.classList.remove('low-stimulus-mode');
     }
 
-    // Save preference (you might want to update user settings)
-    // updateUserAccessibilitySettings({ low_stimulus_mode: newMode });
+    // Save preference to user settings
+    if (enhancedUser) {
+      const updatedSettings = {
+        ...(enhancedUser.accessibility_settings || {}),
+        low_stimulus_mode: newMode
+      };
+      updateUserAccessibilitySettings(updatedSettings);
+    }
+  };
+
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
+    setCurrentLanguage(lng);
+    localStorage.setItem('i18nextLng', lng);
   };
 
   const getPersonaBadgeColor = (code?: string) => {
@@ -239,6 +256,22 @@ export const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({ children }) => {
             <div className="flex items-center gap-2">
               <NotificationCenter />
               <PersonaSelector />
+              <button
+                onClick={() => setAccessibilityPanelOpen(true)}
+                aria-label="Accessibility Settings"
+                className="p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
+              >
+                <Settings className="w-6 h-6" />
+              </button>
+              <select
+                value={currentLanguage}
+                onChange={(e) => changeLanguage(e.target.value)}
+                className="p-2 border border-gray-300 rounded-lg"
+                aria-label="Change language"
+              >
+                <option value="en">English</option>
+                <option value="af">Afrikaans</option>
+              </select>
             </div>
           </div>
 
@@ -326,6 +359,11 @@ export const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({ children }) => {
         <main className="flex-1 p-6">
           {children}
         </main>
+        
+        <AccessibilityPanel 
+          isOpen={accessibilityPanelOpen}
+          onClose={() => setAccessibilityPanelOpen(false)}
+        />
       </div>
     </div>
   );
