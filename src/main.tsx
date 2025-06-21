@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import reportWebVitals from 'web-vitals'
+import { getCLS, getFID, getLCP, getFCP, getTTFB } from 'web-vitals'
 import './index.css'
 import App from './App.tsx'
 
@@ -51,4 +51,15 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 );
 
 // Measure and report web vitals
+// Custom function to report all web vitals
+function reportWebVitals(onPerfEntry: any) {
+  if (onPerfEntry && typeof onPerfEntry === 'function') {
+    getCLS(onPerfEntry);
+    getFID(onPerfEntry);
+    getLCP(onPerfEntry);
+    getFCP(onPerfEntry);
+    getTTFB(onPerfEntry);
+  }
+}
+
 reportWebVitals(reportWebVitalsCallback);
