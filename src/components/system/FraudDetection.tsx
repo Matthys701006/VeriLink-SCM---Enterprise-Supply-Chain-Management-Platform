@@ -39,10 +39,6 @@ export function FraudDetection() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* 
-              CONTENT AREA: Paste your real-time detection content here
-              Replace the placeholder content below with your actual detection metrics
-            */}
             <div className="prose prose-sm max-w-none">
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
@@ -74,10 +70,6 @@ export function FraudDetection() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* 
-              CONTENT AREA: Paste your risk assessment content here
-              Replace the placeholder content below with your actual risk data
-            */}
             <div className="prose prose-sm max-w-none">
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
@@ -109,10 +101,6 @@ export function FraudDetection() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {/* 
-              CONTENT AREA: Paste your monitoring dashboard content here
-              Replace the placeholder content below with your actual monitoring data
-            */}
             <div className="prose prose-sm max-w-none">
               <div className="grid md:grid-cols-3 gap-4 mb-4">
                 <div className="text-center p-4 bg-red-50 rounded-lg">
