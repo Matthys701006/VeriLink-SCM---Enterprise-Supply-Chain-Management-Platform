@@ -1,268 +1,196 @@
-import React, { useEffect, useState } from 'react';
-import { Search, Filter, Plus, Package } from 'lucide-react';
-import { supabase } from '../services/supabase/client';
-import { useInventoryWebSocket } from '../hooks/useWebSocket';
+
+import { useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Search, Plus, Package, AlertTriangle, Edit } from "lucide-react"
+import { useSupabaseRealtime } from "@/hooks/useSupabaseRealtime"
+import { InventoryItemForm } from "@/components/forms/InventoryItemForm"
+import { useAppStore } from "@/stores/appStore"
 
 interface InventoryItem {
-  id: string;
-  sku: string;
-  name: string;
-  category: string;
-  on_hand: number;
-  reserved: number;
-  reorder_point: number;
-  unit_cost: number | null;
-  status: string;
-  warehouse_id: string;
-  warehouses: {
-    name: string;
-    code: string;
-  };
+  id: string
+  sku: string
+  name: string
+  description: string
+  category: string
+  on_hand: number
+  reorder_point: number
+  unit_cost: number
+  status: string
 }
 
-export const Inventory: React.FC = () => {
-  const [items, setItems] = useState<InventoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [realTimeUpdates, setRealTimeUpdates] = useState(0);
+export default function Inventory() {
+  const { searchTerm, setSearchTerm } = useAppStore()
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
   
-  // WebSocket for real-time updates
-  const { connectionStatus, subscribeToInventoryUpdates } = useInventoryWebSocket();
+  const { data: inventoryItems, loading, error } = useSupabaseRealtime<InventoryItem>(
+    "inventory_items",
+    "id, sku, name, description, category, on_hand, reorder_point, unit_cost, status",
+    { column: "name", ascending: true },
+    true // Enable real-time updates
+  )
 
-  useEffect(() => {
-    loadInventoryItems();
-    
-    // Subscribe to real-time inventory updates
-    const unsubscribe = subscribeToInventoryUpdates((update) => {
-      handleInventoryUpdate(update);
-    });
-    
-    return unsubscribe;
-  }, []);
-
-  const handleInventoryUpdate = (update: any) => {
-    // Update inventory items in real-time
-    setItems(prevItems => 
-      prevItems.map(item => 
-        item.id === update.item_id 
-          ? { ...item, ...update.changes }
-          : item
-      )
-    );
-    setRealTimeUpdates(prev => prev + 1);
-  };
-
-  const loadInventoryItems = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('inventory_items')
-        .select(`
-          *,
-          warehouses (
-            name,
-            code
-          )
-        `)
-        .eq('is_active', true)
-        .eq('is_deleted', false)
-        .order('name');
-
-      if (error) throw error;
-      setItems(data || []);
-    } catch (error) {
-      console.error('Error loading inventory items:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredItems = items.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.sku.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !categoryFilter || item.category === categoryFilter;
-    const matchesStatus = !statusFilter || item.status === statusFilter;
-    
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
-
-  const categories = [...new Set(items.map(item => item.category))];
-  const statuses = [...new Set(items.map(item => item.status))];
+  const filteredItems = inventoryItems.filter(item =>
+    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.category.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'available':
-        return 'bg-green-100 text-green-800';
-      case 'low_stock':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'out_of_stock':
-        return 'bg-red-100 text-red-800';
+      case "available":
+        return "bg-green-100 text-green-800"
+      case "low_stock":
+        return "bg-yellow-100 text-yellow-800"
+      case "out_of_stock":
+        return "bg-red-100 text-red-800"
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800"
     }
-  };
+  }
+
+  const handleFormSuccess = () => {
+    setDialogOpen(false)
+    setEditingItem(null)
+  }
+
+  const handleEdit = (item: InventoryItem) => {
+    setEditingItem(item)
+    setDialogOpen(true)
+  }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="text-lg">Loading inventory...</div>
       </div>
-    );
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg text-red-600">Error loading inventory: {error}</div>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Inventory</h1>
-          <div className="flex items-center gap-3">
-            <p className="text-gray-600">Manage your inventory items</p>
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${
-                connectionStatus === 'connected' ? 'bg-green-500' : 
-                connectionStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
-              }`}></div>
-              <span className="text-xs text-gray-500">
-                {connectionStatus === 'connected' ? 'Live' : connectionStatus}
-              </span>
-              {realTimeUpdates > 0 && (
-                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                  {realTimeUpdates} updates
-                </span>
-              )}
-            </div>
-          </div>
+          <h1 className="text-3xl font-bold">Inventory Management</h1>
+          <p className="text-muted-foreground">
+            Track and manage your inventory levels with real-time updates
+          </p>
         </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Add Item
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search items..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => setEditingItem(null)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Item
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingItem ? "Edit Inventory Item" : "Add New Inventory Item"}
+              </DialogTitle>
+            </DialogHeader>
+            <InventoryItemForm
+              onSuccess={handleFormSuccess}
+              onCancel={() => setDialogOpen(false)}
+              initialData={editingItem || undefined}
+              itemId={editingItem?.id}
             />
-          </div>
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">All Categories</option>
-            {categories.map(category => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">All Statuses</option>
-            {statuses.map(status => (
-              <option key={status} value={status}>{status.replace('_', ' ').toUpperCase()}</option>
-            ))}
-          </select>
-          <button className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-            <Filter className="w-4 h-4" />
-            More Filters
-          </button>
-        </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Items Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Item
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  SKU
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Stock
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Warehouse
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Value
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredItems.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10">
-                        <div className="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center">
-                          <Package className="w-5 h-5 text-gray-500" />
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{item.name}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.sku}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.category}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div>
-                      <div className="font-medium">{item.on_hand}</div>
-                      <div className="text-gray-500">Reserved: {item.reserved}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(item.status)}`}>
-                      {item.status.replace('_', ' ').toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div>
-                      <div className="font-medium">{item.warehouses.name}</div>
-                      <div className="text-gray-500">{item.warehouses.code}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.unit_cost ? `$${(item.on_hand * item.unit_cost).toLocaleString()}` : 'N/A'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="flex items-center space-x-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Input
+            placeholder="Search inventory..."
+            className="pl-10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
+        <Badge variant="outline" className="bg-blue-50 text-blue-700">
+          Real-time updates enabled
+        </Badge>
       </div>
 
-      {filteredItems.length === 0 && (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {filteredItems.map((item) => (
+          <Card key={item.id} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center space-x-2">
+                  <Package className="w-5 h-5 text-primary" />
+                  <div>
+                    <CardTitle className="text-lg">{item.name}</CardTitle>
+                    <p className="text-sm text-muted-foreground">{item.sku}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Badge variant="outline" className={getStatusColor(item.status)}>
+                    {item.status.replace('_', ' ')}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEdit(item)}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">{item.description}</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Category:</span>
+                  <span className="text-sm">{item.category}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">On Hand:</span>
+                  <span className={`text-sm font-bold ${item.on_hand <= item.reorder_point ? 'text-red-600' : 'text-green-600'}`}>
+                    {item.on_hand}
+                    {item.on_hand <= item.reorder_point && (
+                      <AlertTriangle className="w-4 h-4 inline ml-1" />
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Reorder Point:</span>
+                  <span className="text-sm">{item.reorder_point}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Unit Cost:</span>
+                  <span className="text-sm font-bold">${item.unit_cost}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {filteredItems.length === 0 && !loading && (
         <div className="text-center py-12">
-          <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">No items found matching your criteria</p>
+          <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium mb-2">No inventory items found</h3>
+          <p className="text-muted-foreground">
+            {searchTerm ? "Try adjusting your search terms" : "Start by adding your first inventory item"}
+          </p>
         </div>
       )}
     </div>
-  );
-};
+  )
+}
