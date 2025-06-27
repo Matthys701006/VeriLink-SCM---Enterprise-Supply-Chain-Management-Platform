@@ -1,4 +1,4 @@
-// OrchestrixSCM Type Definitions
+// VerilinkSCM Type Definitions
 export interface Organization {
   id: string;
   name: string;
