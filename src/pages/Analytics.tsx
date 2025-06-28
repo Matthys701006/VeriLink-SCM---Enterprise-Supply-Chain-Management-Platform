@@ -38,10 +38,9 @@ export default function Analytics() {
   const [selectedTab, setSelectedTab] = useState<'overview' | 'reports' | 'mobile'>('overview')
   const [showReportBuilder, setShowReportBuilder] = useState(false)
   const [savedReports, setSavedReports] = useState<CustomReport[]>([])
+  const { currentSnapshot, mlModels, loading, refresh, error } = useAnalytics(selectedPeriod)
   
-  const { currentSnapshot, mlModels, loading, refresh } = useAnalytics(selectedPeriod)
-  
-  if (loading) {
+  if (loading && !currentSnapshot) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -91,6 +90,7 @@ export default function Analytics() {
         <TabsContent value="mobile">
           <MobileAPIEndpoints />
         </TabsContent>
+      </TabsContent>
       </Tabs>
 
       <ReportBuilder
