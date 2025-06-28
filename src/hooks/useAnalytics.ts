@@ -1,72 +1,79 @@
-import { useState, useEffect } from 'react'
-import { supabase } from '@/integrations/supabase/client'
-import { AnalyticsSnapshot, MLModel } from '@/types/analytics'
-import { useAuth } from '@/hooks/useAuth'
-import { useToast } from '@/hooks/use-toast'
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { AnalyticsSnapshot, MLModel } from '@/types/analytics';
 
-interface UseAnalyticsProps {
-  period?: 'daily' | 'weekly' | 'monthly'
-}
+export function useAnalytics(organizationId?: string, period: 'daily' | 'weekly' | 'monthly' = 'daily') {
+  const [snapshots, setSnapshots] = useState<AnalyticsSnapshot[]>([]);
+  const [currentSnapshot, setCurrentSnapshot] = useState<AnalyticsSnapshot | null>(null);
+  const [mlModels, setMlModels] = useState<MLModel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export function useAnalytics({ period = 'daily' }: UseAnalyticsProps = {}) {
-  const [snapshots, setSnapshots] = useState<AnalyticsSnapshot[]>([])
-  const [currentSnapshot, setCurrentSnapshot] = useState<AnalyticsSnapshot | null>(null)
-  const [mlModels, setMlModels] = useState<MLModel[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const { user } = useAuth()
-  const { toast } = useToast()
-  
-  const loadData = async () => {
+  useEffect(() => {
+    if (organizationId) {
+      loadAnalyticsData();
+    }
+  }, [organizationId, period]);
+
+  const loadAnalyticsData = async () => {
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
       
       // Load analytics snapshots
       const { data: snapshotData, error: snapshotError } = await supabase
         .from('analytics_snapshots')
         .select('*')
+        .eq('organization_id', organizationId)
         .eq('snapshot_type', period)
         .order('snapshot_date', { ascending: false })
-        .limit(30)
+        .limit(30);
+
+      if (snapshotError) throw snapshotError;
       
-      if (snapshotError) throw snapshotError
-      setSnapshots(snapshotData || [])
-      setCurrentSnapshot(snapshotData?.[0] || null)
-      
+      // If we have data, use it, otherwise generate mock data
+      if (snapshotData && snapshotData.length > 0) {
+        setSnapshots(snapshotData);
+        setCurrentSnapshot(snapshotData[0]);
+      } else {
+        const mockSnapshot = generateMockSnapshot(organizationId || '550e8400-e29b-41d4-a716-446655440000', period);
+        setSnapshots([mockSnapshot]);
+        setCurrentSnapshot(mockSnapshot);
+      }
+
       // Load ML models
       const { data: modelData, error: modelError } = await supabase
         .from('ml_models')
         .select('*')
-        .order('created_at', { ascending: false })
+        .eq('organization_id', organizationId)
+        .order('created_at', { ascending: false });
+
+      if (modelError) throw modelError;
       
-      if (modelError) throw modelError
-      setMlModels(modelData || [])
+      if (modelData && modelData.length > 0) {
+        setMlModels(modelData);
+      } else {
+        setMlModels(generateMockModels(organizationId || '550e8400-e29b-41d4-a716-446655440000'));
+      }
+    } catch (err) {
+      console.error('Error loading analytics data:', err);
+      setError('Failed to load analytics data');
       
-    } catch (error: any) {
-      console.error('Error loading analytics data:', error)
-      setError(error.message || 'Failed to load analytics data')
-      toast({
-        title: "Error",
-        description: "Failed to load analytics data. Please try again.",
-        variant: "destructive",
-      })
+      // Still set mock data on error so UI isn't empty
+      const mockSnapshot = generateMockSnapshot(organizationId || '550e8400-e29b-41d4-a716-446655440000', period);
+      setSnapshots([mockSnapshot]);
+      setCurrentSnapshot(mockSnapshot);
+      setMlModels(generateMockModels(organizationId || '550e8400-e29b-41d4-a716-446655440000'));
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
-  
-  useEffect(() => {
-    if (user) {
-      loadData()
-    }
-  }, [user, period])
-  
-  const generateMockSnapshot = (): AnalyticsSnapshot => {
+  };
+
+  const generateMockSnapshot = (orgId: string, snapshotType: string): AnalyticsSnapshot => {
     return {
-      id: 'mock',
-      organization_id: '550e8400-e29b-41d4-a716-446655440000',
-      snapshot_type: period,
+      id: 'mock-' + Date.now(),
+      organization_id: orgId,
+      snapshot_type: snapshotType as any,
       snapshot_date: new Date().toISOString().split('T')[0],
       metrics: {
         inventory_turnover: 8.4,
@@ -129,50 +136,53 @@ export function useAnalytics({ period = 'daily' }: UseAnalyticsProps = {}) {
       computation_time_ms: 234,
       data_quality_score: 94.7,
       created_at: new Date().toISOString()
-    }
-  }
+    };
+  };
 
-  const displaySnapshot = currentSnapshot || generateMockSnapshot()
-  
+  const generateMockModels = (orgId: string): MLModel[] => {
+    return [
+      {
+        id: 'mock-1',
+        organization_id: orgId,
+        model_name: 'Demand Forecasting',
+        model_type: 'demand_forecast',
+        version: '1.0.0',
+        status: 'deployed',
+        accuracy_score: 0.873,
+        prediction_count: 15847,
+        last_prediction_at: new Date().toISOString()
+      },
+      {
+        id: 'mock-2',
+        organization_id: orgId,
+        model_name: 'Supplier Risk Assessment',
+        model_type: 'supplier_scoring',
+        version: '1.0.0',
+        status: 'deployed',
+        accuracy_score: 0.921,
+        prediction_count: 2340,
+        last_prediction_at: new Date().toISOString()
+      },
+      {
+        id: 'mock-3',
+        organization_id: orgId,
+        model_name: 'Route Optimization',
+        model_type: 'route_optimization',
+        version: '1.0.0',
+        status: 'deployed',
+        accuracy_score: 0.845,
+        prediction_count: 8923,
+        last_prediction_at: new Date().toISOString()
+      }
+    ];
+  };
+
   return {
     snapshots,
-    currentSnapshot: displaySnapshot,
-    mlModels: mlModels.length > 0 ? mlModels : generateMockModels(),
+    currentSnapshot,
+    mlModels,
     loading,
     error,
-    refresh: loadData
-  }
-}
-
-// Generate mock ML models if none exist in the database
-function generateMockModels(): MLModel[] {
-  return [
-    {
-      id: 'mock-1',
-      model_name: 'Demand Forecasting',
-      model_type: 'demand_forecast',
-      status: 'deployed',
-      accuracy_score: 0.873,
-      prediction_count: 15847,
-      last_prediction_at: new Date().toISOString()
-    },
-    {
-      id: 'mock-2',
-      model_name: 'Supplier Risk Assessment',
-      model_type: 'supplier_scoring',
-      status: 'deployed',
-      accuracy_score: 0.921,
-      prediction_count: 2340,
-      last_prediction_at: new Date().toISOString()
-    },
-    {
-      id: 'mock-3',
-      model_name: 'Route Optimization',
-      model_type: 'route_optimization',
-      status: 'deployed',
-      accuracy_score: 0.845,
-      prediction_count: 8923,
-      last_prediction_at: new Date().toISOString()
-    }
-  ]
+    refresh: loadAnalyticsData
+  };
 }

@@ -1,20 +1,14 @@
-import { useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
-  BarChart3, 
-  LineChart, 
-  PieChart, 
-  TableProperties, 
-  Save,
-  Plus,
-  Trash2
-} from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
+import { PanelRight, BarChart3, BarChart, LineChart, PieChart, Table, Save, X, Plus, ListFilter, Columns } from "lucide-react"
 
 interface ReportBuilderProps {
   isOpen: boolean
@@ -23,368 +17,328 @@ interface ReportBuilderProps {
 }
 
 export function ReportBuilder({ isOpen, onClose, onSave }: ReportBuilderProps) {
-  const { toast } = useToast()
-  const [reportName, setReportName] = useState("")
+  const [activeTab, setActiveTab] = useState("metrics")
+  const [reportName, setReportName] = useState("New Report")
   const [reportDescription, setReportDescription] = useState("")
-  const [chartType, setChartType] = useState("bar")
-  const [activeTab, setActiveTab] = useState("data")
-  const [selectedTables, setSelectedTables] = useState<string[]>([])
+  const [chartType, setChartType] = useState<string>("bar")
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([])
-  const [groupBy, setGroupBy] = useState<string[]>([])
-  const [sortBy, setSortBy] = useState("")
-  const [filters, setFilters] = useState<{field: string, operator: string, value: string}[]>([
-    { field: "", operator: "equals", value: "" }
-  ])
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([])
 
-  const availableTables = [
-    "inventory_items",
-    "suppliers",
-    "purchase_orders",
-    "warehouses",
-    "shipments"
-  ]
-
-  const availableMetrics = {
-    "inventory_items": [
-      "count", "avg_unit_cost", "total_value", "avg_on_hand", "reorder_point"
-    ],
-    "suppliers": [
-      "count", "avg_performance_score", "avg_risk_score", "total_orders"
-    ],
-    "purchase_orders": [
-      "count", "avg_total", "sum_total", "avg_approval_time", "fulfillment_rate"
-    ],
-    "warehouses": [
-      "count", "avg_capacity", "total_capacity", "utilization_rate"
-    ],
-    "shipments": [
-      "count", "avg_cost", "total_cost", "on_time_rate", "avg_transit_time"
-    ]
+  const resetForm = () => {
+    setReportName("New Report")
+    setReportDescription("")
+    setChartType("bar")
+    setSelectedMetrics([])
+    setSelectedFilters([])
+    setActiveTab("metrics")
   }
 
-  const handleAddFilter = () => {
-    setFilters([...filters, { field: "", operator: "equals", value: "" }])
-  }
-
-  const handleRemoveFilter = (index: number) => {
-    setFilters(filters.filter((_, i) => i !== index))
-  }
-
-  const handleUpdateFilter = (index: number, field: keyof (typeof filters)[0], value: string) => {
-    const newFilters = [...filters]
-    newFilters[index] = { ...newFilters[index], [field]: value }
-    setFilters(newFilters)
+  const handleClose = () => {
+    resetForm()
+    onClose()
   }
 
   const handleSave = () => {
-    if (!reportName) {
-      toast({
-        title: "Error",
-        description: "Please enter a report name",
-        variant: "destructive",
-      })
-      return
-    }
-    
-    if (selectedTables.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please select at least one data source",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (selectedMetrics.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please select at least one metric",
-        variant: "destructive",
-      })
-      return
-    }
-
     const report = {
       id: `report-${Date.now()}`,
       name: reportName,
       description: reportDescription,
       chart_type: chartType,
+      metrics: selectedMetrics,
+      filters: selectedFilters,
       created_at: new Date().toISOString(),
-      last_run: new Date().toISOString(),
-      config: {
-        tables: selectedTables,
-        metrics: selectedMetrics,
-        group_by: groupBy,
-        sort_by: sortBy,
-        filters: filters.filter(f => f.field && f.value)
-      }
     }
-
+    
     onSave(report)
-    toast({
-      title: "Success",
-      description: "Report has been created",
-    })
+    resetForm()
+  }
 
-    // Reset form
-    setReportName("")
-    setReportDescription("")
-    setChartType("bar")
-    setSelectedTables([])
-    setSelectedMetrics([])
-    setGroupBy([])
-    setSortBy("")
-    setFilters([{ field: "", operator: "equals", value: "" }])
-    setActiveTab("data")
+  const toggleMetric = (metric: string) => {
+    setSelectedMetrics(prev => 
+      prev.includes(metric) 
+        ? prev.filter(m => m !== metric) 
+        : [...prev, metric]
+    )
+  }
+
+  const toggleFilter = (filter: string) => {
+    setSelectedFilters(prev => 
+      prev.includes(filter) 
+        ? prev.filter(f => f !== filter) 
+        : [...prev, filter]
+    )
+  }
+
+  const metrics = [
+    { id: "inventory_value", name: "Inventory Value", category: "Inventory" },
+    { id: "inventory_turnover", name: "Inventory Turnover", category: "Inventory" },
+    { id: "stockout_rate", name: "Stockout Rate", category: "Inventory" },
+    { id: "order_fill_rate", name: "Order Fill Rate", category: "Orders" },
+    { id: "order_cycle_time", name: "Order Cycle Time", category: "Orders" },
+    { id: "supplier_on_time", name: "Supplier On-Time Delivery", category: "Suppliers" },
+    { id: "supplier_quality", name: "Supplier Quality", category: "Suppliers" },
+    { id: "warehouse_utilization", name: "Warehouse Utilization", category: "Warehouse" },
+    { id: "picking_accuracy", name: "Picking Accuracy", category: "Warehouse" },
+    { id: "transportation_cost", name: "Transportation Cost", category: "Logistics" },
+    { id: "delivery_performance", name: "Delivery Performance", category: "Logistics" },
+    { id: "carbon_emissions", name: "Carbon Emissions", category: "Sustainability" },
+  ]
+
+  const filters = [
+    { id: "date_range", name: "Date Range", type: "date" },
+    { id: "warehouse", name: "Warehouse", type: "select" },
+    { id: "category", name: "Category", type: "select" },
+    { id: "supplier", name: "Supplier", type: "select" },
+    { id: "status", name: "Status", type: "select" },
+    { id: "priority", name: "Priority", type: "select" },
+  ]
+
+  const metricsByCategory = metrics.reduce((acc, metric) => {
+    if (!acc[metric.category]) {
+      acc[metric.category] = []
+    }
+    acc[metric.category].push(metric)
+    return acc
+  }, {} as Record<string, typeof metrics>)
+
+  const chartIcons = {
+    bar: <BarChart className="h-4 w-4" />,
+    line: <LineChart className="h-4 w-4" />,
+    pie: <PieChart className="h-4 w-4" />,
+    table: <Table className="h-4 w-4" />,
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Report Builder</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4 pt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="reportName" className="text-sm font-medium">Report Name</label>
-              <Input
-                id="reportName"
-                placeholder="Enter report name"
-                value={reportName}
-                onChange={(e) => setReportName(e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label htmlFor="chartType" className="text-sm font-medium">Chart Type</label>
-              <Select value={chartType} onValueChange={setChartType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select chart type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bar">
-                    <div className="flex items-center">
-                      <BarChart3 className="w-4 h-4 mr-2" />
-                      Bar Chart
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="line">
-                    <div className="flex items-center">
-                      <LineChart className="w-4 h-4 mr-2" />
-                      Line Chart
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="pie">
-                    <div className="flex items-center">
-                      <PieChart className="w-4 h-4 mr-2" />
-                      Pie Chart
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="table">
-                    <div className="flex items-center">
-                      <TableProperties className="w-4 h-4 mr-2" />
-                      Table View
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+        <div className="flex flex-1 overflow-hidden">
+          <div className="w-64 border-r p-4">
+            <Tabs defaultValue="metrics" value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="metrics">
+                  <Columns className="h-4 w-4 mr-1" />
+                  Metrics
+                </TabsTrigger>
+                <TabsTrigger value="filters">
+                  <ListFilter className="h-4 w-4 mr-1" />
+                  Filters
+                </TabsTrigger>
+                <TabsTrigger value="preview">
+                  <BarChart3 className="h-4 w-4 mr-1" />
+                  Preview
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
 
-          <div className="space-y-2">
-            <label htmlFor="reportDescription" className="text-sm font-medium">Description</label>
-            <Textarea
-              id="reportDescription"
-              placeholder="Enter report description"
-              value={reportDescription}
-              onChange={(e) => setReportDescription(e.target.value)}
-              rows={2}
-            />
-          </div>
-
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="pt-2">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="data">Data Sources</TabsTrigger>
-              <TabsTrigger value="metrics">Metrics</TabsTrigger>
-              <TabsTrigger value="filters">Filters</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="data" className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Data Sources</label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {availableTables.map(table => (
-                    <div 
-                      key={table}
-                      className={`p-3 border rounded-lg cursor-pointer ${
-                        selectedTables.includes(table) 
-                          ? "bg-blue-50 border-blue-300" 
-                          : "bg-white hover:bg-gray-50"
-                      }`}
-                      onClick={() => {
-                        if (selectedTables.includes(table)) {
-                          setSelectedTables(selectedTables.filter(t => t !== table))
-                        } else {
-                          setSelectedTables([...selectedTables, table])
-                        }
-                      }}
-                    >
-                      <div className="text-sm font-medium">{table.replace("_", " ")}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="metrics" className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Available Metrics</label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {selectedTables.flatMap(table => 
-                    (availableMetrics[table as keyof typeof availableMetrics] || []).map(metric => (
-                      <div 
-                        key={`${table}.${metric}`}
-                        className={`p-3 border rounded-lg cursor-pointer ${
-                          selectedMetrics.includes(`${table}.${metric}`) 
-                            ? "bg-blue-50 border-blue-300" 
-                            : "bg-white hover:bg-gray-50"
-                        }`}
-                        onClick={() => {
-                          const metricKey = `${table}.${metric}`
-                          if (selectedMetrics.includes(metricKey)) {
-                            setSelectedMetrics(selectedMetrics.filter(m => m !== metricKey))
-                          } else {
-                            setSelectedMetrics([...selectedMetrics, metricKey])
-                          }
-                        }}
-                      >
-                        <div className="text-sm font-medium">{metric.replace("_", " ")}</div>
-                        <div className="text-xs text-gray-500">{table.replace("_", " ")}</div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-              
-              {selectedTables.length === 0 && (
-                <div className="text-center p-6 bg-gray-50 rounded-lg">
-                  <p className="text-gray-500">Please select data sources first</p>
-                </div>
-              )}
-              
-              {selectedTables.length > 0 && selectedMetrics.length > 0 && (
+            <div className="mt-4">
+              {activeTab === "metrics" && (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Group By (Optional)</label>
-                    <Select value={groupBy[0] || ""} onValueChange={(value) => setGroupBy([value])}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select group by field" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">None</SelectItem>
-                        <SelectItem value="category">Category</SelectItem>
-                        <SelectItem value="supplier">Supplier</SelectItem>
-                        <SelectItem value="warehouse">Warehouse</SelectItem>
-                        <SelectItem value="status">Status</SelectItem>
-                        <SelectItem value="date">Date</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Sort By (Optional)</label>
-                    <Select value={sortBy} onValueChange={setSortBy}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select sort by field" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">None</SelectItem>
-                        {selectedMetrics.map(metric => (
-                          <SelectItem key={metric} value={metric}>{metric.split('.')[1].replace("_", " ")}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>Metrics</Label>
+                    <div className="h-[calc(100vh-400px)] overflow-auto pr-2 space-y-4">
+                      {Object.entries(metricsByCategory).map(([category, categoryMetrics]) => (
+                        <div key={category}>
+                          <h4 className="text-sm font-medium text-muted-foreground mb-2">{category}</h4>
+                          <div className="space-y-2">
+                            {categoryMetrics.map((metric) => (
+                              <div 
+                                key={metric.id}
+                                className="flex items-center space-x-2"
+                              >
+                                <Checkbox
+                                  id={metric.id}
+                                  checked={selectedMetrics.includes(metric.id)}
+                                  onCheckedChange={() => toggleMetric(metric.id)}
+                                />
+                                <label 
+                                  htmlFor={metric.id}
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                >
+                                  {metric.name}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
-            </TabsContent>
-            
-            <TabsContent value="filters" className="space-y-4 pt-4">
-              {filters.map((filter, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Select
-                    value={filter.field}
-                    onValueChange={(value) => handleUpdateFilter(index, 'field', value)}
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select field" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="category">Category</SelectItem>
-                      <SelectItem value="supplier">Supplier</SelectItem>
-                      <SelectItem value="warehouse">Warehouse</SelectItem>
-                      <SelectItem value="status">Status</SelectItem>
-                      <SelectItem value="date">Date</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
-                  <Select
-                    value={filter.operator}
-                    onValueChange={(value) => handleUpdateFilter(index, 'operator', value)}
-                  >
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Condition" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="equals">Equals</SelectItem>
-                      <SelectItem value="contains">Contains</SelectItem>
-                      <SelectItem value="greater_than">Greater than</SelectItem>
-                      <SelectItem value="less_than">Less than</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
-                  <Input
-                    placeholder="Value"
-                    value={filter.value}
-                    onChange={(e) => handleUpdateFilter(index, 'value', e.target.value)}
-                    className="flex-1"
-                  />
-                  
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleRemoveFilter(index)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
               
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleAddFilter}
-                className="flex items-center gap-1"
-              >
-                <Plus className="w-4 h-4" />
-                Add Filter
-              </Button>
-            </TabsContent>
-          </Tabs>
-        </div>
+              {activeTab === "filters" && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Filters</Label>
+                    <div className="h-[calc(100vh-400px)] overflow-auto pr-2 space-y-2">
+                      {filters.map((filter) => (
+                        <div 
+                          key={filter.id}
+                          className="flex items-center space-x-2"
+                        >
+                          <Checkbox
+                            id={`filter-${filter.id}`}
+                            checked={selectedFilters.includes(filter.id)}
+                            onCheckedChange={() => toggleFilter(filter.id)}
+                          />
+                          <label 
+                            htmlFor={`filter-${filter.id}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                          >
+                            {filter.name}
+                          </label>
+                          <Badge variant="outline" className="ml-auto">
+                            {filter.type}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
-        <div className="flex justify-end space-x-2 pt-4">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} className="flex items-center gap-1">
-            <Save className="w-4 h-4" />
-            Create Report
-          </Button>
+              {activeTab === "preview" && (
+                <div className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">Chart Type</h4>
+                    <Select value={chartType} onValueChange={setChartType}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bar">
+                          <div className="flex items-center">
+                            <BarChart className="h-4 w-4 mr-2" />
+                            Bar Chart
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="line">
+                          <div className="flex items-center">
+                            <LineChart className="h-4 w-4 mr-2" />
+                            Line Chart
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="pie">
+                          <div className="flex items-center">
+                            <PieChart className="h-4 w-4 mr-2" />
+                            Pie Chart
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="table">
+                          <div className="flex items-center">
+                            <Table className="h-4 w-4 mr-2" />
+                            Table
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="report-name">Report Name</Label>
+                    <Input
+                      id="report-name"
+                      value={reportName}
+                      onChange={(e) => setReportName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="report-description">Description</Label>
+                    <Textarea
+                      id="report-description"
+                      value={reportDescription}
+                      onChange={(e) => setReportDescription(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Preview Panel */}
+          <div className="flex-1 p-4 flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold">{reportName || "New Report"}</h3>
+                {reportDescription && <p className="text-sm text-muted-foreground">{reportDescription}</p>}
+              </div>
+              <div className="flex items-center gap-2">
+                {chartType && (
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    {chartIcons[chartType as keyof typeof chartIcons]}
+                    {chartType.charAt(0).toUpperCase() + chartType.slice(1)}
+                  </Badge>
+                )}
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <Columns className="h-4 w-4 mr-1" />
+                  {selectedMetrics.length} metrics
+                </Badge>
+                {selectedFilters.length > 0 && (
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <ListFilter className="h-4 w-4 mr-1" />
+                    {selectedFilters.length} filters
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            <div className="flex-1 border rounded-lg p-4 bg-slate-50 flex items-center justify-center">
+              <div className="text-center">
+                <BarChart3 className="h-16 w-16 mx-auto text-muted-foreground" />
+                
+                {selectedMetrics.length > 0 ? (
+                  <div>
+                    <h3 className="mt-4 font-medium">Selected Metrics</h3>
+                    <div className="flex flex-wrap gap-2 mt-2 justify-center">
+                      {selectedMetrics.map((metricId) => (
+                        <Badge key={metricId} variant="secondary">
+                          {metrics.find(m => m.id === metricId)?.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-4 text-muted-foreground">Select metrics to build your report</p>
+                )}
+                
+                {selectedFilters.length > 0 && (
+                  <div className="mt-4">
+                    <h3 className="font-medium">Filters</h3>
+                    <div className="flex flex-wrap gap-2 mt-2 justify-center">
+                      {selectedFilters.map((filterId) => (
+                        <Badge key={filterId} variant="outline">
+                          {filters.find(f => f.id === filterId)?.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={handleClose}
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={selectedMetrics.length === 0 || !reportName}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save Report
+              </Button>
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

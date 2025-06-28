@@ -1,4 +1,3 @@
-// Analytics Types
 export interface AnalyticsSnapshot {
   id: string;
   organization_id: string;
@@ -55,20 +54,33 @@ export interface AnalyticsSnapshot {
 
 export interface MLModel {
   id: string;
+  organization_id: string;
   model_name: string;
   model_type: string;
-  status: string;
-  accuracy_score: number;
-  prediction_count: number;
-  last_prediction_at: string;
+  version: string;
+  framework?: string;
+  algorithm?: string;
+  status: 'training' | 'deployed' | 'deprecated';
+  accuracy_score?: number;
+  precision_score?: number;
+  recall_score?: number;
+  f1_score?: number;
+  prediction_count?: number;
+  last_prediction_at?: string;
+  created_at?: string;
 }
 
-export interface Report {
+export interface ReportTemplate {
   id: string;
   name: string;
   description: string;
-  chart_type: string;
+  chart_type: 'bar' | 'line' | 'pie' | 'table';
+  metrics: string[];
+}
+
+export interface Report extends ReportTemplate {
   created_at: string;
-  last_run: string;
-  config?: any;
+  last_run?: string;
+  filters?: Record<string, any>;
+  data?: any[];
 }
