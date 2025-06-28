@@ -1,4 +1,3 @@
-
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { WifiOff, Wifi } from "lucide-react"
 import { usePWA } from "@/hooks/usePWA"
@@ -16,3 +15,4 @@ export function OfflineIndicator() {
       </AlertDescription>
     </Alert>
   )
+}
