@@ -1,21 +1,17 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalyticsSnapshot, MLModel } from '@/types/analytics';
+import { useToast } from '@/hooks/use-toast';
 
-export function useAnalytics(organizationId?: string, period: 'daily' | 'weekly' | 'monthly' = 'daily') {
+export function useAnalytics(period: 'daily' | 'weekly' | 'monthly' = 'daily') {
   const [snapshots, setSnapshots] = useState<AnalyticsSnapshot[]>([]);
   const [currentSnapshot, setCurrentSnapshot] = useState<AnalyticsSnapshot | null>(null);
   const [mlModels, setMlModels] = useState<MLModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    if (organizationId) {
-      loadAnalyticsData();
-    }
-  }, [organizationId, period]);
-
-  const loadAnalyticsData = async () => {
+  const fetchAnalyticsData = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -24,56 +20,51 @@ export function useAnalytics(organizationId?: string, period: 'daily' | 'weekly'
       const { data: snapshotData, error: snapshotError } = await supabase
         .from('analytics_snapshots')
         .select('*')
-        .eq('organization_id', organizationId)
         .eq('snapshot_type', period)
         .order('snapshot_date', { ascending: false })
         .limit(30);
 
-      if (snapshotError) throw snapshotError;
-      
-      // If we have data, use it, otherwise generate mock data
-      if (snapshotData && snapshotData.length > 0) {
-        setSnapshots(snapshotData);
-        setCurrentSnapshot(snapshotData[0]);
-      } else {
-        const mockSnapshot = generateMockSnapshot(organizationId || '550e8400-e29b-41d4-a716-446655440000', period);
-        setSnapshots([mockSnapshot]);
-        setCurrentSnapshot(mockSnapshot);
+      if (snapshotError) {
+        throw snapshotError;
       }
+      
+      setSnapshots(snapshotData || []);
+      setCurrentSnapshot(snapshotData?.[0] || null);
 
       // Load ML models
       const { data: modelData, error: modelError } = await supabase
         .from('ml_models')
         .select('*')
-        .eq('organization_id', organizationId)
         .order('created_at', { ascending: false });
 
-      if (modelError) throw modelError;
-      
-      if (modelData && modelData.length > 0) {
-        setMlModels(modelData);
-      } else {
-        setMlModels(generateMockModels(organizationId || '550e8400-e29b-41d4-a716-446655440000'));
+      if (modelError) {
+        throw modelError;
       }
-    } catch (err) {
-      console.error('Error loading analytics data:', err);
-      setError('Failed to load analytics data');
       
-      // Still set mock data on error so UI isn't empty
-      const mockSnapshot = generateMockSnapshot(organizationId || '550e8400-e29b-41d4-a716-446655440000', period);
-      setSnapshots([mockSnapshot]);
-      setCurrentSnapshot(mockSnapshot);
-      setMlModels(generateMockModels(organizationId || '550e8400-e29b-41d4-a716-446655440000'));
+      setMlModels(modelData || []);
+    } catch (err: any) {
+      console.error('Error loading analytics data:', err);
+      setError(err.message || 'Failed to load analytics data');
+      
+      toast({
+        title: 'Error',
+        description: 'Failed to load analytics data',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const generateMockSnapshot = (orgId: string, snapshotType: string): AnalyticsSnapshot => {
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, [period]);
+
+  const generateMockSnapshot = (): AnalyticsSnapshot => {
     return {
-      id: 'mock-' + Date.now(),
-      organization_id: orgId,
-      snapshot_type: snapshotType as any,
+      id: 'mock',
+      organization_id: '',
+      snapshot_type: period,
       snapshot_date: new Date().toISOString().split('T')[0],
       metrics: {
         inventory_turnover: 8.4,
@@ -139,50 +130,14 @@ export function useAnalytics(organizationId?: string, period: 'daily' | 'weekly'
     };
   };
 
-  const generateMockModels = (orgId: string): MLModel[] => {
-    return [
-      {
-        id: 'mock-1',
-        organization_id: orgId,
-        model_name: 'Demand Forecasting',
-        model_type: 'demand_forecast',
-        version: '1.0.0',
-        status: 'deployed',
-        accuracy_score: 0.873,
-        prediction_count: 15847,
-        last_prediction_at: new Date().toISOString()
-      },
-      {
-        id: 'mock-2',
-        organization_id: orgId,
-        model_name: 'Supplier Risk Assessment',
-        model_type: 'supplier_scoring',
-        version: '1.0.0',
-        status: 'deployed',
-        accuracy_score: 0.921,
-        prediction_count: 2340,
-        last_prediction_at: new Date().toISOString()
-      },
-      {
-        id: 'mock-3',
-        organization_id: orgId,
-        model_name: 'Route Optimization',
-        model_type: 'route_optimization',
-        version: '1.0.0',
-        status: 'deployed',
-        accuracy_score: 0.845,
-        prediction_count: 8923,
-        last_prediction_at: new Date().toISOString()
-      }
-    ];
-  };
+  const displaySnapshot = currentSnapshot || generateMockSnapshot();
 
   return {
     snapshots,
-    currentSnapshot,
+    currentSnapshot: displaySnapshot,
     mlModels,
     loading,
     error,
-    refresh: loadAnalyticsData
+    refresh: fetchAnalyticsData
   };
 }

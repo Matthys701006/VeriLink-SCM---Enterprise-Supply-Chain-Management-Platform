@@ -1,3 +1,5 @@
+// Define types for analytics data
+
 export interface AnalyticsSnapshot {
   id: string;
   organization_id: string;
@@ -38,7 +40,7 @@ export interface AnalyticsSnapshot {
   alerts: Array<{
     type: string;
     message: string;
-    severity: 'high' | 'medium' | 'low';
+    severity: 'low' | 'medium' | 'high';
     count: number;
   }>;
   ai_insights: {
@@ -62,12 +64,10 @@ export interface MLModel {
   algorithm?: string;
   status: 'training' | 'deployed' | 'deprecated';
   accuracy_score?: number;
-  precision_score?: number;
-  recall_score?: number;
-  f1_score?: number;
   prediction_count?: number;
   last_prediction_at?: string;
-  created_at?: string;
+  performance_metrics?: Record<string, any>;
+  created_at: string;
 }
 
 export interface ReportTemplate {
@@ -76,11 +76,12 @@ export interface ReportTemplate {
   description: string;
   chart_type: 'bar' | 'line' | 'pie' | 'table';
   metrics: string[];
-}
-
-export interface Report extends ReportTemplate {
+  filters?: Record<string, any>;
   created_at: string;
   last_run?: string;
-  filters?: Record<string, any>;
+}
+
+export interface CustomReport extends ReportTemplate {
   data?: any[];
+  visualization_options?: Record<string, any>;
 }

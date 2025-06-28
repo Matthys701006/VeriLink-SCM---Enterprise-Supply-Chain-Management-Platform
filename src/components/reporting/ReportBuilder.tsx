@@ -1,346 +1,286 @@
-import React, { useState } from 'react'
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Badge } from "@/components/ui/badge"
-import { PanelRight, BarChart3, BarChart, LineChart, PieChart, Table, Save, X, Plus, ListFilter, Columns } from "lucide-react"
+import React, { useState } from 'react';
+import { 
+  X, 
+  BarChart, 
+  LineChart, 
+  PieChart, 
+  Table, 
+  ChevronDown,
+  Filter,
+  Save,
+  RefreshCw,
+  Download
+} from 'lucide-react';
+import { CustomReport } from '@/types/analytics';
 
 interface ReportBuilderProps {
-  isOpen: boolean
-  onClose: () => void
-  onSave: (report: any) => void
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (report: CustomReport) => void;
 }
 
 export function ReportBuilder({ isOpen, onClose, onSave }: ReportBuilderProps) {
-  const [activeTab, setActiveTab] = useState("metrics")
-  const [reportName, setReportName] = useState("New Report")
-  const [reportDescription, setReportDescription] = useState("")
-  const [chartType, setChartType] = useState<string>("bar")
-  const [selectedMetrics, setSelectedMetrics] = useState<string[]>([])
-  const [selectedFilters, setSelectedFilters] = useState<string[]>([])
+  const [reportName, setReportName] = useState('');
+  const [reportDescription, setReportDescription] = useState('');
+  const [chartType, setChartType] = useState<'bar' | 'line' | 'pie' | 'table'>('bar');
+  const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
+  const [previewMode, setPreviewMode] = useState(false);
 
-  const resetForm = () => {
-    setReportName("New Report")
-    setReportDescription("")
-    setChartType("bar")
-    setSelectedMetrics([])
-    setSelectedFilters([])
-    setActiveTab("metrics")
-  }
+  const metricCategories = [
+    {
+      name: 'Inventory',
+      metrics: [
+        'inventory_turnover',
+        'inventory_value',
+        'on_hand_quantity',
+        'inventory_accuracy',
+        'stockout_rate',
+        'safety_stock_level',
+      ]
+    },
+    {
+      name: 'Suppliers',
+      metrics: [
+        'supplier_on_time_delivery',
+        'supplier_quality_score',
+        'supplier_lead_time',
+        'supplier_cost_variance',
+        'supplier_responsiveness',
+      ]
+    },
+    {
+      name: 'Warehousing',
+      metrics: [
+        'warehouse_utilization',
+        'picking_accuracy',
+        'order_processing_time',
+        'put_away_time',
+        'dock_to_stock_time',
+      ]
+    },
+    {
+      name: 'Transportation',
+      metrics: [
+        'on_time_delivery',
+        'transportation_cost',
+        'carbon_footprint',
+        'miles_per_shipment',
+        'fuel_efficiency',
+      ]
+    },
+    {
+      name: 'Financial',
+      metrics: [
+        'revenue',
+        'cost_of_goods_sold',
+        'gross_margin',
+        'inventory_carrying_cost',
+        'total_supply_chain_cost',
+      ]
+    },
+  ];
 
-  const handleClose = () => {
-    resetForm()
-    onClose()
-  }
+  const formatMetricName = (metric: string) => {
+    return metric
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  const handleMetricToggle = (metric: string) => {
+    if (selectedMetrics.includes(metric)) {
+      setSelectedMetrics(selectedMetrics.filter(m => m !== metric));
+    } else {
+      setSelectedMetrics([...selectedMetrics, metric]);
+    }
+  };
 
   const handleSave = () => {
-    const report = {
+    if (!reportName || selectedMetrics.length === 0) {
+      alert('Please provide a report name and select at least one metric');
+      return;
+    }
+
+    const report: CustomReport = {
       id: `report-${Date.now()}`,
       name: reportName,
       description: reportDescription,
       chart_type: chartType,
       metrics: selectedMetrics,
-      filters: selectedFilters,
       created_at: new Date().toISOString(),
-    }
-    
-    onSave(report)
-    resetForm()
-  }
+      last_run: new Date().toISOString()
+    };
 
-  const toggleMetric = (metric: string) => {
-    setSelectedMetrics(prev => 
-      prev.includes(metric) 
-        ? prev.filter(m => m !== metric) 
-        : [...prev, metric]
-    )
-  }
+    onSave(report);
+  };
 
-  const toggleFilter = (filter: string) => {
-    setSelectedFilters(prev => 
-      prev.includes(filter) 
-        ? prev.filter(f => f !== filter) 
-        : [...prev, filter]
-    )
-  }
-
-  const metrics = [
-    { id: "inventory_value", name: "Inventory Value", category: "Inventory" },
-    { id: "inventory_turnover", name: "Inventory Turnover", category: "Inventory" },
-    { id: "stockout_rate", name: "Stockout Rate", category: "Inventory" },
-    { id: "order_fill_rate", name: "Order Fill Rate", category: "Orders" },
-    { id: "order_cycle_time", name: "Order Cycle Time", category: "Orders" },
-    { id: "supplier_on_time", name: "Supplier On-Time Delivery", category: "Suppliers" },
-    { id: "supplier_quality", name: "Supplier Quality", category: "Suppliers" },
-    { id: "warehouse_utilization", name: "Warehouse Utilization", category: "Warehouse" },
-    { id: "picking_accuracy", name: "Picking Accuracy", category: "Warehouse" },
-    { id: "transportation_cost", name: "Transportation Cost", category: "Logistics" },
-    { id: "delivery_performance", name: "Delivery Performance", category: "Logistics" },
-    { id: "carbon_emissions", name: "Carbon Emissions", category: "Sustainability" },
-  ]
-
-  const filters = [
-    { id: "date_range", name: "Date Range", type: "date" },
-    { id: "warehouse", name: "Warehouse", type: "select" },
-    { id: "category", name: "Category", type: "select" },
-    { id: "supplier", name: "Supplier", type: "select" },
-    { id: "status", name: "Status", type: "select" },
-    { id: "priority", name: "Priority", type: "select" },
-  ]
-
-  const metricsByCategory = metrics.reduce((acc, metric) => {
-    if (!acc[metric.category]) {
-      acc[metric.category] = []
-    }
-    acc[metric.category].push(metric)
-    return acc
-  }, {} as Record<string, typeof metrics>)
-
-  const chartIcons = {
-    bar: <BarChart className="h-4 w-4" />,
-    line: <LineChart className="h-4 w-4" />,
-    pie: <PieChart className="h-4 w-4" />,
-    table: <Table className="h-4 w-4" />,
-  }
+  if (!isOpen) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Report Builder</DialogTitle>
-        </DialogHeader>
-        
-        <div className="flex flex-1 overflow-hidden">
-          <div className="w-64 border-r p-4">
-            <Tabs defaultValue="metrics" value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="metrics">
-                  <Columns className="h-4 w-4 mr-1" />
-                  Metrics
-                </TabsTrigger>
-                <TabsTrigger value="filters">
-                  <ListFilter className="h-4 w-4 mr-1" />
-                  Filters
-                </TabsTrigger>
-                <TabsTrigger value="preview">
-                  <BarChart3 className="h-4 w-4 mr-1" />
-                  Preview
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            <div className="mt-4">
-              {activeTab === "metrics" && (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50" onClick={onClose}></div>
+        <div className="relative w-full max-w-4xl bg-white rounded-lg shadow-xl">
+          <div className="flex items-center justify-between p-6 border-b">
+            <h2 className="text-xl font-semibold">Build Custom Report</h2>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          
+          <div className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Report Configuration - Left Panel */}
+              <div className="lg:col-span-2 space-y-6">
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Metrics</Label>
-                    <div className="h-[calc(100vh-400px)] overflow-auto pr-2 space-y-4">
-                      {Object.entries(metricsByCategory).map(([category, categoryMetrics]) => (
-                        <div key={category}>
-                          <h4 className="text-sm font-medium text-muted-foreground mb-2">{category}</h4>
-                          <div className="space-y-2">
-                            {categoryMetrics.map((metric) => (
-                              <div 
-                                key={metric.id}
-                                className="flex items-center space-x-2"
-                              >
-                                <Checkbox
-                                  id={metric.id}
-                                  checked={selectedMetrics.includes(metric.id)}
-                                  onCheckedChange={() => toggleMetric(metric.id)}
-                                />
-                                <label 
-                                  htmlFor={metric.id}
-                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                >
-                                  {metric.name}
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {activeTab === "filters" && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Filters</Label>
-                    <div className="h-[calc(100vh-400px)] overflow-auto pr-2 space-y-2">
-                      {filters.map((filter) => (
-                        <div 
-                          key={filter.id}
-                          className="flex items-center space-x-2"
-                        >
-                          <Checkbox
-                            id={`filter-${filter.id}`}
-                            checked={selectedFilters.includes(filter.id)}
-                            onCheckedChange={() => toggleFilter(filter.id)}
-                          />
-                          <label 
-                            htmlFor={`filter-${filter.id}`}
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                          >
-                            {filter.name}
-                          </label>
-                          <Badge variant="outline" className="ml-auto">
-                            {filter.type}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "preview" && (
-                <div className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">Chart Type</h4>
-                    <Select value={chartType} onValueChange={setChartType}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="bar">
-                          <div className="flex items-center">
-                            <BarChart className="h-4 w-4 mr-2" />
-                            Bar Chart
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="line">
-                          <div className="flex items-center">
-                            <LineChart className="h-4 w-4 mr-2" />
-                            Line Chart
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="pie">
-                          <div className="flex items-center">
-                            <PieChart className="h-4 w-4 mr-2" />
-                            Pie Chart
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="table">
-                          <div className="flex items-center">
-                            <Table className="h-4 w-4 mr-2" />
-                            Table
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="report-name">Report Name</Label>
-                    <Input
-                      id="report-name"
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Report Name</label>
+                    <input
+                      type="text"
                       value={reportName}
                       onChange={(e) => setReportName(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"
+                      placeholder="Enter report name"
                     />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="report-description">Description</Label>
-                    <Textarea
-                      id="report-description"
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea
                       value={reportDescription}
                       onChange={(e) => setReportDescription(e.target.value)}
-                      rows={3}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"
+                      placeholder="Enter report description"
+                      rows={2}
                     />
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* Preview Panel */}
-          <div className="flex-1 p-4 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-semibold">{reportName || "New Report"}</h3>
-                {reportDescription && <p className="text-sm text-muted-foreground">{reportDescription}</p>}
-              </div>
-              <div className="flex items-center gap-2">
-                {chartType && (
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    {chartIcons[chartType as keyof typeof chartIcons]}
-                    {chartType.charAt(0).toUpperCase() + chartType.slice(1)}
-                  </Badge>
-                )}
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <Columns className="h-4 w-4 mr-1" />
-                  {selectedMetrics.length} metrics
-                </Badge>
-                {selectedFilters.length > 0 && (
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    <ListFilter className="h-4 w-4 mr-1" />
-                    {selectedFilters.length} filters
-                  </Badge>
-                )}
-              </div>
-            </div>
+                {/* Chart Type Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Chart Type</label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {[
+                      { type: 'bar' as const, icon: BarChart, label: 'Bar Chart' },
+                      { type: 'line' as const, icon: LineChart, label: 'Line Chart' },
+                      { type: 'pie' as const, icon: PieChart, label: 'Pie Chart' },
+                      { type: 'table' as const, icon: Table, label: 'Table View' },
+                    ].map((chart) => {
+                      const Icon = chart.icon;
+                      const isSelected = chartType === chart.type;
+                      return (
+                        <div
+                          key={chart.type}
+                          onClick={() => setChartType(chart.type)}
+                          className={`p-3 border rounded-lg cursor-pointer flex flex-col items-center justify-center gap-2 ${
+                            isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
+                          }`}
+                        >
+                          <Icon className={`w-6 h-6 ${isSelected ? 'text-blue-500' : 'text-gray-600'}`} />
+                          <span className={`text-sm ${isSelected ? 'font-medium text-blue-700' : 'text-gray-700'}`}>
+                            {chart.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
 
-            <div className="flex-1 border rounded-lg p-4 bg-slate-50 flex items-center justify-center">
-              <div className="text-center">
-                <BarChart3 className="h-16 w-16 mx-auto text-muted-foreground" />
+                {/* Metrics Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Metrics ({selectedMetrics.length} selected)
+                  </label>
+                  <div className="space-y-3 p-4 border rounded-lg max-h-64 overflow-y-auto">
+                    {metricCategories.map((category) => (
+                      <div key={category.name} className="mb-4">
+                        <h4 className="font-medium text-gray-900 mb-2">{category.name}</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {category.metrics.map((metric) => (
+                            <div 
+                              key={metric}
+                              className="flex items-center gap-2"
+                            >
+                              <input
+                                type="checkbox"
+                                id={`metric-${metric}`}
+                                checked={selectedMetrics.includes(metric)}
+                                onChange={() => handleMetricToggle(metric)}
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              <label htmlFor={`metric-${metric}`} className="text-sm text-gray-700">
+                                {formatMetricName(metric)}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Preview Panel */}
+              <div className="lg:col-span-1 border rounded-lg p-4">
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Report Preview</h3>
                 
-                {selectedMetrics.length > 0 ? (
-                  <div>
-                    <h3 className="mt-4 font-medium">Selected Metrics</h3>
-                    <div className="flex flex-wrap gap-2 mt-2 justify-center">
-                      {selectedMetrics.map((metricId) => (
-                        <Badge key={metricId} variant="secondary">
-                          {metrics.find(m => m.id === metricId)?.name}
-                        </Badge>
-                      ))}
-                    </div>
+                {selectedMetrics.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <BarChart className="w-12 h-12 text-gray-300 mb-2" />
+                    <p className="text-sm text-gray-500">Select metrics to see a preview</p>
                   </div>
                 ) : (
-                  <p className="mt-4 text-muted-foreground">Select metrics to build your report</p>
-                )}
-                
-                {selectedFilters.length > 0 && (
-                  <div className="mt-4">
-                    <h3 className="font-medium">Filters</h3>
-                    <div className="flex flex-wrap gap-2 mt-2 justify-center">
-                      {selectedFilters.map((filterId) => (
-                        <Badge key={filterId} variant="outline">
-                          {filters.find(f => f.id === filterId)?.name}
-                        </Badge>
-                      ))}
+                  <div className="space-y-4">
+                    <div className="bg-gray-100 rounded-lg p-3 text-center text-sm text-gray-500 flex flex-col items-center justify-center h-48">
+                      {chartType === 'bar' && <BarChart className="w-10 h-10 mb-2 text-blue-600" />}
+                      {chartType === 'line' && <LineChart className="w-10 h-10 mb-2 text-green-600" />}
+                      {chartType === 'pie' && <PieChart className="w-10 h-10 mb-2 text-purple-600" />}
+                      {chartType === 'table' && <Table className="w-10 h-10 mb-2 text-gray-600" />}
+                      <p className="font-medium">{reportName || 'Unnamed Report'}</p>
+                      <p className="text-xs mt-1">{selectedMetrics.length} metrics selected</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-gray-700">Selected Metrics:</h4>
+                      <ul className="text-sm text-gray-600 space-y-1">
+                        {selectedMetrics.map(metric => (
+                          <li key={metric} className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                            {formatMetricName(metric)}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
                 )}
+                
+                <div className="pt-4 mt-4 border-t">
+                  <div className="space-y-3">
+                    <button 
+                      onClick={handleSave}
+                      disabled={!reportName || selectedMetrics.length === 0}
+                      className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none"
+                    >
+                      <Save className="w-4 h-4" />
+                      Save Report
+                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button className="flex items-center justify-center gap-1 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                        <RefreshCw className="w-4 h-4" />
+                        <span className="text-sm">Refresh</span>
+                      </button>
+                      <button className="flex items-center justify-center gap-1 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                        <Download className="w-4 h-4" />
+                        <span className="text-sm">Export</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-
-            <div className="flex justify-end space-x-2 mt-4">
-              <Button
-                variant="outline"
-                onClick={handleClose}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={selectedMetrics.length === 0 || !reportName}
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Save Report
-              </Button>
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
-  )
+      </div>
+    </div>
+  );
 }
