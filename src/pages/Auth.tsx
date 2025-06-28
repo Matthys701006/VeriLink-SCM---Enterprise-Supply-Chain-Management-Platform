@@ -18,6 +18,7 @@ export default function Auth() {
     const testConnection = async () => {
       const result = await checkConnection()
       console.log('Auth page - Connection test:', result)
+      return result
     }
     
     testConnection().then(result => {
