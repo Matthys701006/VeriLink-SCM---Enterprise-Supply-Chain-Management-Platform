@@ -20,7 +20,7 @@ export function useSupabaseData<T>(
       setLoading(true)
       setError(null)
       
-      console.log(`Fetching data from table: ${table}`);
+      console.log(`Fetching data from table: ${table}, select: ${select}`);
       
       // First check if we can connect to Supabase at all
       const { data: testData, error: testError } = await supabase
@@ -35,7 +35,7 @@ export function useSupabaseData<T>(
         setLoading(false);
         
         // Only show toast for real connection errors, not just missing tables
-        if (!testError.message.includes('foreign key constraint')) {
+        if (!testError.message.includes('does not exist')) {
           toast({
             title: "Connection Error",
             description: `Could not connect to Supabase: ${testError.message}`,
@@ -58,7 +58,8 @@ export function useSupabaseData<T>(
         console.error(`Error fetching ${table}:`, error);
         setError(error.message);
         
-        if (!error.message.includes('foreign key constraint')) {
+        // Don't show an error toast if the table just doesn't exist yet
+        if (!error.message.includes('does not exist')) {
           toast({
             title: "Data Fetch Error",
             description: `Failed to fetch ${table}: ${error.message}`,
