@@ -1,5 +1,4 @@
-
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
@@ -11,12 +10,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { signInSchema, signUpSchema, type SignInFormData, type SignUpFormData } from '@/schemas/validationSchemas'
 import { useAuth } from '@/hooks/useAuth'
 import { Package, Eye, EyeOff } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
 export function AuthForm() {
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [activeTab, setActiveTab] = useState('signin')
-  const { signIn, signUp, resetPassword } = useAuth()
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const { signIn, signUp, resetPassword, loading: authLoading } = useAuth()
   const navigate = useNavigate()
+  const { toast } = useToast()
+
+  // Clear errors when switching tabs
+  useEffect(() => {
+    setSubmitError(null)
+  }, [activeTab])
 
   const signInForm = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
@@ -37,16 +45,44 @@ export function AuthForm() {
   })
 
   const onSignIn = async (data: SignInFormData) => {
-    const { error } = await signIn(data.email, data.password)
-    if (!error) {
+    try {
+      setSubmitError(null)
+      const { error } = await signIn(data.email, data.password)
+      if (error) {
+        console.error('Sign in error:', error)
+        setSubmitError(error.message)
+        return
+      }
+      
+      toast({
+        title: "Success",
+        description: "You have been signed in successfully",
+      })
       navigate('/')
+    } catch (err) {
+      console.error('Unexpected error during sign in:', err)
+      setSubmitError('An unexpected error occurred. Please try again.')
     }
   }
 
   const onSignUp = async (data: SignUpFormData) => {
-    const { error } = await signUp(data.email, data.password, data.fullName)
-    if (!error) {
+    try {
+      setSubmitError(null)
+      const { error } = await signUp(data.email, data.password, data.fullName)
+      if (error) {
+        console.error('Sign up error:', error)
+        setSubmitError(error.message)
+        return
+      }
+      
+      toast({
+        title: "Account created",
+        description: "Your account has been created. Please sign in to continue.",
+      })
       setActiveTab('signin')
+    } catch (err) {
+      console.error('Unexpected error during sign up:', err)
+      setSubmitError('An unexpected error occurred. Please try again.')
     }
   }
 
@@ -61,6 +97,10 @@ export function AuthForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      {/* Connection status debug */}
+      <div className="fixed bottom-0 right-0 p-1 text-xs bg-gray-100 text-gray-700 opacity-50">
+        ENV: {import.meta.env.VITE_SUPABASE_URL ? '✓' : '✗'}
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
@@ -133,12 +173,18 @@ export function AuthForm() {
                     )}
                   />
                   
+                  {submitError && (
+                    <div className="bg-red-50 text-red-800 p-3 text-sm rounded-md mt-3">
+                      {submitError}
+                    </div>
+                  )}
+                  
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={signInForm.formState.isSubmitting}
+                    disabled={signInForm.formState.isSubmitting || authLoading}
                   >
-                    {signInForm.formState.isSubmitting ? 'Signing in...' : 'Sign In'}
+                    {signInForm.formState.isSubmitting || authLoading ? 'Signing in...' : 'Sign In'}
                   </Button>
                   
                   <Button
@@ -198,11 +244,26 @@ export function AuthForm() {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="Create a password"
-                            {...field}
-                          />
+                          <div className="relative">
+                            <Input
+                              type={showPassword ? 'text' : 'password'}
+                              placeholder="Create a password"
+                              {...field}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() => setShowPassword(!showPassword)}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -216,23 +277,44 @@ export function AuthForm() {
                       <FormItem>
                         <FormLabel>Confirm Password</FormLabel>
                         <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="Confirm your password"
-                            {...field}
-                          />
+                          <div className="relative">
+                            <Input
+                              type={showConfirmPassword ? 'text' : 'password'}
+                              placeholder="Confirm your password"
+                              {...field}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            >
+                              {showConfirmPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   
+                  {submitError && (
+                    <div className="bg-red-50 text-red-800 p-3 text-sm rounded-md mt-3">
+                      {submitError}
+                    </div>
+                  )}
+                  
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={signUpForm.formState.isSubmitting}
+                    disabled={signUpForm.formState.isSubmitting || authLoading}
                   >
-                    {signUpForm.formState.isSubmitting ? 'Creating account...' : 'Create Account'}
+                    {signUpForm.formState.isSubmitting || authLoading ? 'Creating account...' : 'Create Account'}
                   </Button>
                 </form>
               </Form>

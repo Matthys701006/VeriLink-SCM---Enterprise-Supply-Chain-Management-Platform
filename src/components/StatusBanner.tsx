@@ -52,7 +52,7 @@ export function StatusBanner() {
   return (
     <Alert 
       className={`
-        fixed top-16 left-1/2 transform -translate-x-1/2 w-auto max-w-md z-50 shadow-lg
+        fixed top-16 left-1/2 transform -translate-x-1/2 w-auto max-w-md z-40 shadow-lg
         ${status === 'connected' ? 'bg-green-50 border-green-300 text-green-800' : 
           status === 'disconnected' ? 'bg-red-50 border-red-300 text-red-800' :
           'bg-blue-50 border-blue-300 text-blue-800'
@@ -72,7 +72,7 @@ export function StatusBanner() {
           <CheckCircle2 className="h-5 w-5 text-green-500" />
           <AlertTitle>Connected</AlertTitle>
           <AlertDescription className="flex flex-col gap-1">
-            <span>Successfully connected to Supabase</span>
+            <span>Successfully connected to Supabase at {import.meta.env.VITE_SUPABASE_URL}</span>
             <Button 
               variant="outline" 
               size="sm" 
