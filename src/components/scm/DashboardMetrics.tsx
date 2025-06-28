@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, TrendingDown, Package, ShoppingCart, Truck, AlertTriangle, Loader2 } from "lucide-react"
 import { useSupabaseData } from "@/hooks/useSupabaseData"
@@ -8,9 +9,26 @@ interface MetricCardProps {
   change: string
   trend: "up" | "down"
   icon: React.ReactNode
+  isLoading?: boolean
 }
 
-function MetricCard({ title, value, change, trend, icon }: MetricCardProps) {
+function MetricCard({ title, value, change, trend, icon, isLoading }: MetricCardProps) {
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+          <div className="text-muted-foreground">{icon}</div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-10">
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -28,25 +46,10 @@ function MetricCard({ title, value, change, trend, icon }: MetricCardProps) {
   )
 }
 
-function LoadingCard() {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">Loading...</CardTitle>
-        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">--</div>
-        <div className="text-xs text-muted-foreground mt-1">Please wait...</div>
-      </CardContent>
-    </Card>
-  )
-}
-
 interface InventoryItem {
-  unit_cost: number | null
-  on_hand: number
-  reorder_point: number
+  unit_cost?: number | null
+  on_hand?: number | null
+  reorder_point?: number | null
 }
 
 interface PurchaseOrder {
@@ -54,90 +57,70 @@ interface PurchaseOrder {
 }
 
 interface Shipment {
-  status: string
+  status?: string | null
 }
 
 export function DashboardMetrics() {
-  const { 
-    data: inventoryItems, 
-    loading: loadingInventory, 
-    error: errorInventory 
-  } = useSupabaseData<InventoryItem>(
+  const { data: inventoryItems, loading: loadingInventory, error: inventoryError } = useSupabaseData<InventoryItem>(
     "inventory_items",
     "unit_cost, on_hand, reorder_point"
   )
 
-  const { 
-    data: purchaseOrders, 
-    loading: loadingPurchaseOrders, 
-    error: errorPurchaseOrders 
-  } = useSupabaseData<PurchaseOrder>(
+  const { data: purchaseOrders, loading: loadingPO, error: poError } = useSupabaseData<PurchaseOrder>(
     "purchase_orders",
     "id"
   )
 
-  const { 
-    data: shipments, 
-    loading: loadingShipments, 
-    error: errorShipments 
-  } = useSupabaseData<Shipment>(
+  const { data: shipments, loading: loadingShipments, error: shipmentsError } = useSupabaseData<Shipment>(
     "shipments",
     "status"
   )
 
-  // Show loading state while any data is still loading
-  const isLoading = loadingInventory || loadingPurchaseOrders || loadingShipments
-  const hasError = errorInventory || errorPurchaseOrders || errorShipments
+  const isLoading = loadingInventory || loadingPO || loadingShipments
+  const hasError = !!inventoryError || !!poError || !!shipmentsError
 
-  if (isLoading) {
-    return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <LoadingCard key={index} />
-        ))}
-      </div>
-    )
-  }
+  // Calculate metrics from real data (with null checks)
+  const safeInventoryItems = Array.isArray(inventoryItems) ? inventoryItems : []
+  const safePurchaseOrders = Array.isArray(purchaseOrders) ? purchaseOrders : []
+  const safeShipments = Array.isArray(shipments) ? shipments : []
 
+  // Safe calculation for total inventory value
+  const totalInventoryValue = safeInventoryItems.reduce((sum, item) => 
+    sum + ((item?.unit_cost || 0) * (item?.on_hand || 0)), 0)
+  
+  // Safe calculation for active purchase orders count
+  const activePurchaseOrders = safePurchaseOrders.length
+  
+  // Safe calculation for shipments in transit
+  const shipmentsInTransit = safeShipments.filter(shipment => 
+    shipment?.status === 'in_transit' || 
+    shipment?.status === 'pending'
+  ).length
+  
+  // Safe calculation for low stock items
+  const lowStockItems = safeInventoryItems.filter(item => 
+    (item?.on_hand || 0) <= (item?.reorder_point || 0) && 
+    (item?.on_hand || 0) > 0
+  ).length
+
+  // If there's an error, display error cards
   if (hasError) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Card key={index}>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium text-muted-foreground">Error</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-red-600">Failed to load data</div>
-            </CardContent>
-          </Card>
-        ))}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex flex-col items-center justify-center text-center space-y-2">
+              <AlertTriangle className="h-8 w-8 text-red-500" />
+              <p className="text-sm text-muted-foreground">Error loading dashboard metrics</p>
+              <p className="text-xs text-red-500">
+                {inventoryError || poError || shipmentsError || "Unknown error"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
-
-  // Ensure data arrays exist and provide safe defaults
-  const safeInventoryItems = inventoryItems || []
-  const safePurchaseOrders = purchaseOrders || []
-  const safeShipments = shipments || []
-
-  // Calculate metrics from real data with safe handling
-  const totalInventoryValue = safeInventoryItems.reduce((sum, item) => {
-    const unitCost = item.unit_cost || 0
-    const onHand = item.on_hand || 0
-    return sum + (unitCost * onHand)
-  }, 0)
-  
-  const activePurchaseOrders = safePurchaseOrders.length
-  
-  const shipmentsInTransit = safeShipments.filter(shipment => 
-    shipment.status === 'in_transit' ||  
-    shipment.status === 'pending'
-  ).length
-  
-  const lowStockItems = safeInventoryItems.filter(item => 
-    (item.on_hand || 0) <= (item.reorder_point || 0)
-  ).length
 
   const metrics = [
     {
@@ -173,7 +156,11 @@ export function DashboardMetrics() {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {metrics.map((metric, index) => (
-        <MetricCard key={index} {...metric} />
+        <MetricCard 
+          key={index} 
+          {...metric} 
+          isLoading={isLoading}
+        />
       ))}
     </div>
   )

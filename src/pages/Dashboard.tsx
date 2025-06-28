@@ -1,6 +1,5 @@
 import { DashboardMetrics } from "@/components/scm/DashboardMetrics"
 import { SupplierPerformance } from "@/components/scm/SupplierPerformance"
-import { RecentActivity } from "@/components/scm/RecentActivity"
 import { InventoryChart } from "@/components/scm/InventoryChart"
 import { useSupabaseData } from "@/hooks/useSupabaseData"
 
@@ -20,7 +19,7 @@ export default function Dashboard() {
     totalItems: inventoryItems.length,
     lowStockItems: inventoryItems.filter(item => item.on_hand <= item.reorder_point).length,
     totalWarehouses: warehouses.length,
-    totalValue: inventoryItems.reduce((sum, item) => sum + (item.unit_cost || 0) * (item.on_hand || 0), 0),
+    totalValue: inventoryItems.reduce((sum, item) => sum + ((item.unit_cost || 0) * (item.on_hand || 0)), 0),
   }
 
   const isLoading = loadingInventory || loadingWarehouses
