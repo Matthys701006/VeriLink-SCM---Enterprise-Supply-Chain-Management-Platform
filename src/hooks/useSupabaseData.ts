@@ -22,6 +22,30 @@ export function useSupabaseData<T>(
       
       console.log(`Fetching data from table: ${table}`);
       
+      // First check if we can connect to Supabase at all
+      const { data: testData, error: testError } = await supabase
+        .from('organizations')
+        .select('id')
+        .limit(1);
+        
+      if (testError) {
+        console.error('Failed to connect to Supabase:', testError);
+        setError(`Connection failed: ${testError.message}`);
+        setData([]);
+        setLoading(false);
+        
+        // Only show toast for real connection errors, not just missing tables
+        if (!testError.message.includes('foreign key constraint')) {
+          toast({
+            title: "Connection Error",
+            description: `Could not connect to Supabase: ${testError.message}`,
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+      
+      // If connected, try to fetch the actual requested data
       let query = supabase.from(table).select(select);
       
       if (orderBy) {
@@ -39,12 +63,6 @@ export function useSupabaseData<T>(
             title: "Data Fetch Error",
             description: `Failed to fetch ${table}: ${error.message}`,
             variant: "destructive",
-          });
-          
-          addNotification({
-            type: 'error',
-            title: 'Data Fetch Error',
-            message: `Failed to fetch ${table}: ${error.message}`
           });
         }
         
