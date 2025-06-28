@@ -22,18 +22,19 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export const checkConnection = async () => {
   try {
     console.log('Testing connection to Supabase...');
-    const { data, error } = await supabase.from('organizations').select('id').limit(1);
+    // Use a more basic query that doesn't depend on application tables
+    const { data, error } = await supabase.rpc('version');
     
     if (error) {
       console.error('Supabase connection test error:', error);
       return { connected: false, error: error.message };
     }
     
-    console.log('Successfully connected to Supabase:', data);
+    console.log('Successfully connected to Supabase');
     return { connected: true, data };
   } catch (err) {
     console.error('Unexpected error testing Supabase connection:', err);
-    return { connected: false, error: err.message };
+    return { connected: false, error: err?.message || 'Unknown error' };
   }
 };
 

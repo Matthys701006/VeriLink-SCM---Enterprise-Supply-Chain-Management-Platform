@@ -28,24 +28,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const checkConnection = async () => {
       try {
-        // We're using a public endpoint that doesn't require auth
-        const { data, error } = await supabase
-          .from('organizations')
-          .select('id')
-          .limit(1)
+        // Test connection using a basic query that doesn't depend on application tables
+        const { data, error } = await supabase.rpc('version')
 
         if (error) {
           console.error('Failed to connect to Supabase:', error)
           toast({
             title: "Connection Error",
-            description: "Failed to connect to the database. Some features may be limited.",
+            description: "Failed to connect to the database. Please check your internet connection.",
             variant: "destructive",
           })
         } else {
-          console.log('Successfully connected to Supabase:', data)
+          console.log('Successfully connected to Supabase')
         }
       } catch (err) {
         console.error('Unexpected error testing connection:', err)
+        toast({
+          title: "Connection Error",
+          description: "Unable to establish database connection. Please try again later.",
+          variant: "destructive",
+        })
       }
     }
 
@@ -83,10 +85,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 })
 
               if (profileError) {
-                console.error('Error updating profile:', profileError)
+                console.warn('Profile update skipped - table may not exist yet:', profileError.message)
               }
             } catch (err) {
-              console.error('Error in profile update:', err)
+              console.warn('Profile update skipped due to error:', err)
             }
           }
         } else if (event === 'SIGNED_OUT') {
