@@ -43,15 +43,19 @@ export default function Compliance() {
   const [regulationFilter, setRegulationFilter] = useState("")
   const [selectedTab, setSelectedTab] = useState<'overview' | 'regulations' | 'audits' | 'training'>('overview')
 
-  const { data: complianceRecords, loading, error, refetch } = useSupabaseData<ComplianceRecord>(
+  const { data: supabaseRecords, loading, error, refetch: supabaseRefetch } = useSupabaseData<ComplianceRecord>(
     "compliance_records",
     "id, organization_id, regulation_type, entity_type, entity_id, compliance_status, assessment_date, expiry_date, evidence_documents, violations, remediation_plan, next_review_date",
     { column: "assessment_date", ascending: false }
   )
 
+  // State for actual data and refetch function to use
+  const [complianceRecords, setComplianceRecords] = useState<ComplianceRecord[]>([])
+  const [refetch, setRefetch] = useState<() => void>(() => supabaseRefetch)
+
   // Generate mock compliance records if none exist
   useEffect(() => {
-    if (complianceRecords.length === 0 && !loading) {
+    if ((supabaseRecords?.length === 0 || !supabaseRecords) && !loading) {
       const mockRecords = [
         {
           id: 'mock-1',
@@ -87,10 +91,13 @@ export default function Compliance() {
       
       // Use mock data instead of waiting for database
       // This avoids foreign key errors if organization doesn't exist
-      refetch = () => {}; // Replace refetch with no-op function
-      complianceRecords = mockRecords as any;
+      setRefetch(() => () => {}); // Replace refetch with no-op function
+      setComplianceRecords(mockRecords as any);
+    } else if (supabaseRecords && supabaseRecords.length > 0) {
+      setComplianceRecords(supabaseRecords);
+      setRefetch(() => supabaseRefetch);
     }
-  }, [complianceRecords, loading]);
+  }, [supabaseRecords, loading, supabaseRefetch]);
 
   // Calculate compliance metrics
   const totalRecords = complianceRecords?.length || 0
