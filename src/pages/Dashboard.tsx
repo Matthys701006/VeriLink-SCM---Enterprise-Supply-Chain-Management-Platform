@@ -3,7 +3,6 @@ import { SupplierPerformance } from "@/components/scm/SupplierPerformance"
 import { RecentActivity } from "@/components/scm/RecentActivity"
 import { InventoryChart } from "@/components/scm/InventoryChart"
 import { useSupabaseData } from "@/hooks/useSupabaseData"
-import { InventoryChart } from "@/components/scm/InventoryChart"
 
 export default function Dashboard() {
   const { data: inventoryItems, loading: loadingInventory } = useSupabaseData(
