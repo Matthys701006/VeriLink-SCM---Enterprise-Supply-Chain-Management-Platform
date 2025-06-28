@@ -1,6 +1,5 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingUp, TrendingDown, Package, ShoppingCart, Truck, AlertTriangle } from "lucide-react"
+import { TrendingUp, TrendingDown, Package, ShoppingCart, Truck, AlertTriangle, Loader2 } from "lucide-react"
 import { useSupabaseData } from "@/hooks/useSupabaseData"
 
 interface MetricCardProps {
@@ -29,8 +28,23 @@ function MetricCard({ title, value, change, trend, icon }: MetricCardProps) {
   )
 }
 
+function LoadingCard() {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">Loading...</CardTitle>
+        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">--</div>
+        <div className="text-xs text-muted-foreground mt-1">Please wait...</div>
+      </CardContent>
+    </Card>
+  )
+}
+
 interface InventoryItem {
-  unit_cost: number
+  unit_cost: number | null
   on_hand: number
   reorder_point: number
 }
@@ -44,34 +58,85 @@ interface Shipment {
 }
 
 export function DashboardMetrics() {
-  const { data: inventoryItems } = useSupabaseData<InventoryItem>(
+  const { 
+    data: inventoryItems, 
+    loading: loadingInventory, 
+    error: errorInventory 
+  } = useSupabaseData<InventoryItem>(
     "inventory_items",
     "unit_cost, on_hand, reorder_point"
   )
 
-  const { data: purchaseOrders } = useSupabaseData<PurchaseOrder>(
+  const { 
+    data: purchaseOrders, 
+    loading: loadingPurchaseOrders, 
+    error: errorPurchaseOrders 
+  } = useSupabaseData<PurchaseOrder>(
     "purchase_orders",
     "id"
   )
 
-  const { data: shipments } = useSupabaseData<Shipment>(
+  const { 
+    data: shipments, 
+    loading: loadingShipments, 
+    error: errorShipments 
+  } = useSupabaseData<Shipment>(
     "shipments",
     "status"
   )
 
-  // Calculate metrics from real data
-  const totalInventoryValue = inventoryItems.reduce((sum, item) => 
-    sum + (item.unit_cost || 0) * (item.on_hand || 0), 0)
+  // Show loading state while any data is still loading
+  const isLoading = loadingInventory || loadingPurchaseOrders || loadingShipments
+  const hasError = errorInventory || errorPurchaseOrders || errorShipments
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <LoadingCard key={index} />
+        ))}
+      </div>
+    )
+  }
+
+  if (hasError) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Card key={index}>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Error</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-red-600">Failed to load data</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
+
+  // Ensure data arrays exist and provide safe defaults
+  const safeInventoryItems = inventoryItems || []
+  const safePurchaseOrders = purchaseOrders || []
+  const safeShipments = shipments || []
+
+  // Calculate metrics from real data with safe handling
+  const totalInventoryValue = safeInventoryItems.reduce((sum, item) => {
+    const unitCost = item.unit_cost || 0
+    const onHand = item.on_hand || 0
+    return sum + (unitCost * onHand)
+  }, 0)
   
-  const activePurchaseOrders = purchaseOrders.length
+  const activePurchaseOrders = safePurchaseOrders.length
   
-  const shipmentsInTransit = shipments.filter(shipment => 
+  const shipmentsInTransit = safeShipments.filter(shipment => 
     shipment.status === 'in_transit' ||  
     shipment.status === 'pending'
   ).length
   
-  const lowStockItems = inventoryItems.filter(item => 
-    item.on_hand <= item.reorder_point
+  const lowStockItems = safeInventoryItems.filter(item => 
+    (item.on_hand || 0) <= (item.reorder_point || 0)
   ).length
 
   const metrics = [
