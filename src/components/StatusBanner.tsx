@@ -18,12 +18,14 @@ export function StatusBanner() {
       
       if (result.connected) {
         setStatus('connected');
+        console.log('StatusBanner: Connection successful');
       } else {
         setStatus('disconnected');
         setError(result.error || 'Could not connect to the database');
+        console.error('StatusBanner: Connection failed:', result.error);
       }
     } catch (err) {
-      console.error('Error checking connection:', err);
+      console.error('StatusBanner: Error checking connection:', err);
       setStatus('disconnected');
       setError('Unexpected error checking connection');
     }
@@ -50,7 +52,7 @@ export function StatusBanner() {
   return (
     <Alert 
       className={`
-        fixed bottom-4 right-4 w-auto max-w-md z-50 shadow-lg
+        fixed top-16 left-1/2 transform -translate-x-1/2 w-auto max-w-md z-50 shadow-lg
         ${status === 'connected' ? 'bg-green-50 border-green-300 text-green-800' : 
           status === 'disconnected' ? 'bg-red-50 border-red-300 text-red-800' :
           'bg-blue-50 border-blue-300 text-blue-800'
@@ -87,7 +89,10 @@ export function StatusBanner() {
           <AlertTitle>Connection Error</AlertTitle>
           <AlertDescription className="flex flex-col gap-1">
             <span>Failed to connect to Supabase:</span>
-            <div className="text-xs bg-red-100 p-2 rounded mt-1">{error}</div>
+            <div className="text-xs bg-red-100 p-2 rounded mt-1 break-all">{error}</div>
+            <div className="mt-1 text-xs">
+              Check your .env file and make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set correctly.
+            </div>
             <div className="flex justify-end gap-2 mt-2">
               <Button 
                 variant="outline" 
