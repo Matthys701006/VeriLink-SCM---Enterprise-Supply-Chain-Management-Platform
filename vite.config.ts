@@ -11,12 +11,14 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    mode === "development" && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  css: {
+    postcss: "./postcss.config.js", // Explicit PostCSS config path (important for Netlify + ESM)
   },
 }));
