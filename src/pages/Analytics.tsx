@@ -23,103 +23,31 @@ import {
   Warehouse,
   Brain,
   Zap
-} from "lucide-react"
-import { PredictiveAnalytics } from "@/components/analytics/PredictiveAnalytics"
-import { ComparativeAnalytics } from "@/components/analytics/ComparativeAnalytics"
-import { useSupabaseData } from "@/hooks/useSupabaseData"
+import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { BarChart3, TrendingUp, TrendingDown, Target, AlertTriangle, Eye, RefreshCw, Download, Brain, Zap, Plus, FileText, Smartphone, Package, ShoppingCart, Warehouse, DollarSign } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { ReportBuilder } from "@/components/reporting/ReportBuilder"
-import { MobileAPIEndpoints } from "@/components/mobile/MobileAPIEndpoints"
 import { useAnalytics } from "@/hooks/useAnalytics"
-
-interface InventoryItem {
-  category: string
-  on_hand: number
-  unit_cost: number
-}
-
-interface PurchaseOrder {
-  status: string
-  total_amount: number
-}
-
-interface Shipment {
-  status: string
-  shipping_cost: number
-}
-
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+import { ReportBuilder } from "@/components/reporting/ReportBuilder"
+import { MobileAPIEndpoints } from "@/components/mobile/MobileAPIEndpoints"
+import { CustomReport } from "@/types/analytics"
 
 export default function Analytics() {
-  const { user } = useAuth()
   const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily')
-  const [selectedTab, setSelectedTab] = useState<'overview' | 'predictive' | 'comparative' | 'reports' | 'mobile'>('overview')
+  const [selectedTab, setSelectedTab] = useState<'overview' | 'reports' | 'mobile'>('overview')
   const [showReportBuilder, setShowReportBuilder] = useState(false)
-  const [savedReports, setSavedReports] = useState<any[]>([])
-
-  const { data: inventoryItems } = useSupabaseData<InventoryItem>(
-    "inventory_items",
-    "category, on_hand, unit_cost"
-  )
-
-  const { data: purchaseOrders } = useSupabaseData<PurchaseOrder>(
-    "purchase_orders",
-    "status, total_amount"
-  )
-
-  const { data: shipments } = useSupabaseData<Shipment>(
-    "shipments",
-    "status, shipping_cost"
-  )
-
-  // Use the analytics hook to get advanced analytics data
-  const { 
-    currentSnapshot: displaySnapshot, 
-    mlModels, 
-    loading: analyticsLoading, 
-    refresh: refreshAnalytics
-  } = useAnalytics(user?.organization_id, selectedPeriod)
-
-
-  // Process inventory data by category
-  const inventoryByCategory = inventoryItems.reduce((acc, item) => {
-    const existing = acc.find(cat => cat.category === item.category)
-    if (existing) {
-      existing.quantity += item.on_hand
-      existing.value += item.on_hand * item.unit_cost
-    } else {
-      acc.push({
-        category: item.category,
-        quantity: item.on_hand,
-        value: item.on_hand * item.unit_cost
-      })
-    }
-    return acc
-  }, [] as Array<{ category: string; quantity: number; value: number }>)
-
-  // Process purchase orders by status
-  const ordersByStatus = purchaseOrders.reduce((acc, order) => {
-    const existing = acc.find(status => status.status === order.status)
-    if (existing) {
-      existing.count += 1
-    } else {
-      acc.push({
-        status: order.status,
-        count: 1
-      })
-    }
-    return acc
-  }, [] as Array<{ status: string; count: number }>)
-
-  // Process shipments by status
-  const shipmentsByStatus = shipments.reduce((acc, shipment) => {
-    const existing = acc.find(status => status.status === shipment.status)
-    if (existing) {
-      existing.count += 1
-    } else {
-      acc.push({
-        status: shipment.status,
-        count: 1
+  const [savedReports, setSavedReports] = useState<CustomReport[]>([])
+  
+  const { currentSnapshot, mlModels, loading, refresh } = useAnalytics(selectedPeriod)
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
       })
     }
     return acc
@@ -141,7 +69,51 @@ export default function Analytics() {
         <div>
           <h1 className="text-3xl font-bold">
             {selectedTab === 'overview' ? 'Analytics & Business Intelligence' : 
-             selectedTab === 'predictive' ? 'Predictive Analytics' :
+             selectedTab === 'reports' ? 'Advanced Reporting' : 'Mobile & API'}
+          </h1>
+          <p className="text-muted-foreground">
+            {selectedTab === 'overview' ? 'Real-time insights and AI-powered analytics' : 
+             selectedTab === 'reports' ? 'Custom reports and data exports' : 'Mobile app integration and API documentation'}
+          </p>
+        </div>
+        <div>
+          <div className="flex items-center gap-3">
+            {selectedTab === 'overview' && (
+              <>
+                <select
+                  value={selectedPeriod}
+                  onChange={(e) => setSelectedPeriod(e.target.value as any)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+                <Button 
+                  onClick={() => refresh()}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Refresh
+                </Button>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Download className="w-4 h-4" />
+                  Export
+                </Button>
+              </>
+            )}
+            
+            {selectedTab === 'reports' && (
+              <Button
+                onClick={() => setShowReportBuilder(true)}
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Create Report
+              </Button>
+            )}
+          </div>
+        </div>
              selectedTab === 'comparative' ? 'Comparative Analytics' :
              selectedTab === 'reports' ? 'Advanced Reporting' : 
              'Mobile & API'}
@@ -193,11 +165,19 @@ export default function Analytics() {
         </div>
       </div>
 
-      <Tabs defaultValue="overview" value={selectedTab} onValueChange={setSelectedTab as any} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+      <Tabs defaultValue="overview" onValueChange={(value) => setSelectedTab(value as any)}>
+        <TabsList className="grid grid-cols-3 w-full">
           <TabsTrigger value="overview">
             <BarChart3 className="w-4 h-4 mr-2" />
             Overview
+          </TabsTrigger>
+          <TabsTrigger value="reports">
+            <FileText className="w-4 h-4 mr-2" />
+            Reports
+          </TabsTrigger>
+          <TabsTrigger value="mobile">
+            <Smartphone className="w-4 h-4 mr-2" />
+            Mobile & API
           </TabsTrigger>
           <TabsTrigger value="predictive">
             <Target className="w-4 h-4 mr-2" />
@@ -335,110 +315,93 @@ export default function Analytics() {
                 <CardContent className="space-y-4">
                   {displaySnapshot.alerts.map((alert, index) => (
                     <div key={index} className={`flex items-start p-4 rounded-lg ${
-                      alert.severity === 'high' ? 'bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800' :
-                      alert.severity === 'medium' ? 'bg-yellow-50 border border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800' :
-                      'bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800'
-                    }`}>
-                      <AlertTriangle className={`w-5 h-5 mr-3 mt-0.5 ${
-                        alert.severity === 'high' ? 'text-red-500 dark:text-red-400' :
-                        alert.severity === 'medium' ? 'text-yellow-500 dark:text-yellow-400' :
-                        'text-blue-500 dark:text-blue-400'
-                      }`} />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{alert.message}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {alert.severity.toUpperCase()} • {alert.count} items affected
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+        <div className="p-4">
+          <TabsContent value="overview" className="space-y-6 mt-0">
+            {/* AI Insights Banner */}
+            <div className="bg-gradient-to-r from-purple-500 to-blue-600 rounded-lg p-6 text-white">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center">
+                  <Brain className="w-8 h-8 mr-3" />
+                  <div>
+                    <h3 className="text-lg font-semibold">AI-Powered Insights</h3>
+                    <p className="text-purple-100 mt-1">{currentSnapshot.ai_insights.top_insight}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-purple-200">Data Quality Score</div>
+                  <div className="text-2xl font-bold">{currentSnapshot.data_quality_score?.toFixed(1)}%</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Key Performance Indicators */}
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Inventory Turnover</CardTitle>
+                  <TrendingUp className="w-4 h-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{currentSnapshot.metrics.inventory_turnover}</div>
+                  <p className="text-xs text-green-600">+12.3% vs last period</p>
                 </CardContent>
               </Card>
-
+              
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Zap className="h-5 w-5" />
-                    AI Recommendations
-                  </CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Order Fulfillment</CardTitle>
+                  <Target className="w-4 h-4 text-blue-600" />
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-start p-4 bg-green-50 border border-green-200 rounded-lg dark:bg-green-900/20 dark:border-green-800">
-                    <Zap className="w-5 h-5 text-green-500 mr-3 mt-0.5 dark:text-green-400" />
-                    <div>
-                      <p className="text-sm font-medium">Efficiency Opportunity</p>
-                      <p className="text-sm text-muted-foreground mt-1">{displaySnapshot.ai_insights.efficiency_recommendation}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start p-4 bg-purple-50 border border-purple-200 rounded-lg dark:bg-purple-900/20 dark:border-purple-800">
-                    <Brain className="w-5 h-5 text-purple-500 mr-3 mt-0.5 dark:text-purple-400" />
-                    <div>
-                      <p className="text-sm font-medium">Strategic Insight</p>
-                      <p className="text-sm text-muted-foreground mt-1">{displaySnapshot.ai_insights.opportunity}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start p-4 bg-orange-50 border border-orange-200 rounded-lg dark:bg-orange-900/20 dark:border-orange-800">
-                    <AlertTriangle className="w-5 h-5 text-orange-500 mr-3 mt-0.5 dark:text-orange-400" />
-                    <div>
-                      <p className="text-sm font-medium">Risk Assessment</p>
-                      <p className="text-sm text-muted-foreground mt-1">{displaySnapshot.ai_insights.risk_assessment}</p>
-                    </div>
-                  </div>
+                <CardContent>
+                  <div className="text-2xl font-bold">{currentSnapshot.metrics.order_fulfillment_rate}%</div>
+                  <p className="text-xs text-green-600">+2.1% vs last period</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Supplier Performance</CardTitle>
+                  <BarChart3 className="w-4 h-4 text-purple-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{currentSnapshot.metrics.supplier_performance}%</div>
+                  <p className="text-xs text-green-600">+0.8% vs last period</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Cost Variance</CardTitle>
+                  <TrendingDown className="w-4 h-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{currentSnapshot.metrics.cost_variance}%</div>
+                  <p className="text-xs text-green-600">Improved by 5.2%</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Quality Score</CardTitle>
+                  <Eye className="w-4 h-4 text-orange-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{currentSnapshot.metrics.quality_score}%</div>
+                  <p className="text-xs text-green-600">+0.3% vs last period</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Perfect Orders</CardTitle>
+                  <Target className="w-4 h-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{currentSnapshot.kpis.perfect_order_rate}%</div>
+                  <p className="text-xs text-green-600">+1.7% vs last period</p>
                 </CardContent>
               </Card>
             </div>
-          )}
-
-          {/* Charts */}
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Inventory by Category</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={inventoryByCategory}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="category" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="quantity" fill="#3b82f6" name="Quantity" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Purchase Orders by Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={ordersByStatus}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ status, count }) => `${status}: ${count}`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="count"
-                    >
-                      {ordersByStatus.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* ML Models */}
           {displaySnapshot && mlModels && mlModels.length > 0 && (
             <Card>
@@ -490,13 +453,66 @@ export default function Analytics() {
           )}
         </TabsContent>
 
-        <TabsContent value="predictive">
-          <PredictiveAnalytics />
-        </TabsContent>
+            {/* Alerts & Recommendations */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Real-time Alerts</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {currentSnapshot.alerts.map((alert, index) => (
+                    <div key={index} className={`flex items-start p-4 rounded-lg ${
+                      alert.severity === 'high' ? 'bg-red-50 border border-red-200' :
+                      alert.severity === 'medium' ? 'bg-yellow-50 border border-yellow-200' :
+                      'bg-blue-50 border border-blue-200'
+                    }`}>
+                      <AlertTriangle className={`w-5 h-5 mr-3 mt-0.5 ${
+                        alert.severity === 'high' ? 'text-red-500' :
+                        alert.severity === 'medium' ? 'text-yellow-500' :
+                        'text-blue-500'
+                      }`} />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">{alert.message}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {alert.severity.toUpperCase()} • {alert.count} items affected
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
 
-        <TabsContent value="comparative">
-          <ComparativeAnalytics />
-        </TabsContent>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">AI Recommendations</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-start p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <Zap className="w-5 h-5 text-green-500 mr-3 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Efficiency Opportunity</p>
+                      <p className="text-sm text-gray-600 mt-1">{currentSnapshot.ai_insights.efficiency_recommendation}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                    <Brain className="w-5 h-5 text-purple-500 mr-3 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Strategic Insight</p>
+                      <p className="text-sm text-gray-600 mt-1">{currentSnapshot.ai_insights.opportunity}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                    <AlertTriangle className="w-5 h-5 text-orange-500 mr-3 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Risk Assessment</p>
+                      <p className="text-sm text-gray-600 mt-1">{currentSnapshot.ai_insights.risk_assessment}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
         <TabsContent value="reports" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -550,37 +566,159 @@ export default function Analytics() {
                     <div className="text-sm text-muted-foreground">
                       Last run: {new Date(report.last_run).toLocaleDateString()}
                     </div>
-                    
-                    <div className="flex justify-between">
-                      <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20">
-                        Run Report
-                      </Button>
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm">
-                          Edit
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          Export
-                        </Button>
+                <TabsContent value="predictive">
+                  <PredictiveAnalytics />
+                </TabsContent>
+
+                <TabsContent value="comparative">
+                  <ComparativeAnalytics />
+                </TabsContent>
+              </Tabs>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="reports" className="space-y-6 mt-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Saved Reports */}
+              {[
+                {
+                  id: 'report-1',
+                  name: 'Inventory Valuation',
+                  description: 'Total value of inventory by category and warehouse',
+                  created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+                  chart_type: 'bar',
+                  last_run: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+                },
+                {
+                  id: 'report-2',
+                  name: 'Supplier Performance',
+                  description: 'On-time delivery and quality metrics by supplier',
+                  created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+                  chart_type: 'table',
+                  last_run: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
+                },
+                {
+                  id: 'report-3',
+                  name: 'Warehouse Utilization',
+                  description: 'Space utilization and capacity metrics by warehouse',
+                  created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+                  chart_type: 'pie',
+                  last_run: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+                },
+                {
+                  id: 'report-4',
+                  name: 'Purchase Order Analysis',
+                  description: 'PO volume, value and approval time analysis',
+                  created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+                  chart_type: 'line',
+                  last_run: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+                },
+                ...savedReports
+              ].map(report => (
+                <Card key={report.id} className="hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-lg">{report.name}</CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">{report.description}</p>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <Badge variant="outline" className={
+                          report.chart_type === 'bar' ? 'bg-blue-100 text-blue-800' :
+                          report.chart_type === 'line' ? 'bg-green-100 text-green-800' :
+                          report.chart_type === 'pie' ? 'bg-purple-100 text-purple-800' :
+                          'bg-gray-100 text-gray-800'
+                        }>
+                          {report.chart_type.toUpperCase()}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground mt-1">
+                          Last run: {new Date(report.last_run).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
-                  </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex justify-between pt-2 border-t">
+                      <Button variant="link" className="px-0 text-sm">Run Report</Button>
+                      <div className="flex items-center gap-2">
+                        <Button variant="link" className="px-1 text-sm">Edit</Button>
+                        <Button variant="link" className="px-1 text-sm">Export</Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              
+              {/* Create New Report Card */}
+              <Card onClick={() => setShowReportBuilder(true)} className="hover:shadow-md transition-shadow border-2 border-dashed border-gray-300 hover:border-primary">
+                <CardContent className="flex flex-col items-center justify-center text-center py-10">
+                  <FileText className="w-12 h-12 text-muted-foreground mb-3" />
+                  <h3 className="text-lg font-medium">Create New Report</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Build a custom report with your selected metrics</p>
                 </CardContent>
               </Card>
-            ))}
+            </div>
             
-            {/* Create New Report Card */}
-            <Card 
-              onClick={() => setShowReportBuilder(true)}
-              className="border-2 border-dashed hover:border-primary/50 hover:bg-muted/50 transition-colors cursor-pointer"
-            >
-              <CardContent className="p-6 flex flex-col items-center justify-center text-center h-full">
-                <FileText className="w-12 h-12 text-muted-foreground mb-3" />
-                <h3 className="text-lg font-medium">Create New Report</h3>
-                <p className="text-sm text-muted-foreground mt-1">Build a custom report with your selected metrics</p>
+            {/* Report Templates */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Report Templates</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {[
+                    {
+                      id: 'template-1',
+                      name: 'Inventory Status',
+                      description: 'Current inventory levels and valuation',
+                      icon: Package
+                    },
+                    {
+                      id: 'template-2',
+                      name: 'Procurement Analysis',
+                      description: 'PO metrics and supplier performance',
+                      icon: ShoppingCart
+                    },
+                    {
+                      id: 'template-3',
+                      name: 'Warehouse Efficiency',
+                      description: 'Picking, packing and storage metrics',
+                      icon: Warehouse
+                    },
+                    {
+                      id: 'template-4',
+                      name: 'Financial Overview',
+                      description: 'Cost analysis and budget tracking',
+                      icon: DollarSign
+                    }
+                  ].map(template => {
+                    const Icon = template.icon
+                    return (
+                      <div 
+                        key={template.id}
+                        onClick={() => setShowReportBuilder(true)}
+                        className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="bg-blue-100 p-2 rounded-lg">
+                            <Icon className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <h4 className="font-medium text-gray-900">{template.name}</h4>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{template.description}</p>
+                      </div>
+                    )
+                  })}
+                </div>
               </CardContent>
             </Card>
-          </div>
+          </TabsContent>
+          
+          <TabsContent value="mobile" className="mt-0">
+            <MobileAPIEndpoints />
+          </TabsContent>
+        </div>
+      </Tabs>
           
           {/* Report Templates */}
           <Card>
@@ -639,8 +777,15 @@ export default function Analytics() {
 
         <TabsContent value="mobile">
           <MobileAPIEndpoints />
-        </TabsContent>
-      </Tabs>
+      {/* Report Builder Modal */}
+      <ReportBuilder
+        isOpen={showReportBuilder}
+        onClose={() => setShowReportBuilder(false)}
+        onSave={(report) => {
+          setSavedReports([...savedReports, report])
+          setShowReportBuilder(false)
+        }}
+      />
       
       {/* Report Builder Modal */}
       <ReportBuilder
