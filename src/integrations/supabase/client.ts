@@ -2,10 +2,10 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Get environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://hdgdudabqytvtipadefg.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkZ2R1ZGFicXl0dnRpcGFkZWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMjE5NDUsImV4cCI6MjA2NjY5Nzk0NX0.cbr6IWKCB_7ClXCgOakJZGFh3MPq0nm1BxfrTp40vbg';
 
-console.log('Initializing Supabase client with URL:', supabaseUrl);
+console.log('Initializing Supabase client with URL:', supabaseUrl?.substring(0, 30) + '...');
 
 // Validate environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
@@ -19,12 +19,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
-    autoRefreshToken: true,
+    autoRefreshToken: true
   },
   global: {
-    headers: {
-      'x-application-name': 'verilink-scm'
-    },
+    headers: { 'x-application-name': 'verilink-scm' }
   },
 });
 
@@ -32,17 +30,43 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 export const checkConnection = async () => {
   try {
     console.log('Testing connection to Supabase...');
-    
-    // Use a more basic query that doesn't depend on application tables
-    const { data, error } = await supabase.rpc('version');
-    
-    if (error) {
-      console.error('Supabase connection test error:', error);
-      return { connected: false, error: error.message };
+
+    // Check basic connection first
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return { 
+        connected: false, 
+        error: 'Missing Supabase URL or API key. Please check your .env file.' 
+      };
     }
     
-    console.log('Successfully connected to Supabase:', data);
-    return { connected: true, data };
+    // Use a more basic query that doesn't depend on application tables
+    try {
+      const { data, error } = await supabase.rpc('version');
+      
+      if (error) {
+        console.error('Supabase RPC error:', error);
+        return { connected: false, error: error.message };
+      }
+      
+      console.log('Successfully connected to Supabase:', data);
+      return { connected: true, data };
+    } catch (rpcError) {
+      console.error('RPC method failed, trying a simple select query:', rpcError);
+      
+      // Fallback to a simple query
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .select('id')
+        .limit(1);
+      
+      if (orgError) {
+        console.error('Supabase query error:', orgError);
+        return { connected: false, error: orgError.message };
+      }
+      
+      console.log('Successfully connected to Supabase via query');
+      return { connected: true, data: 'Connected via query' };
+    }
   } catch (err) {
     console.error('Unexpected error testing Supabase connection:', err);
     return { connected: false, error: err?.message || 'Unknown error' };
@@ -53,10 +77,10 @@ export const checkConnection = async () => {
 checkConnection()
   .then(status => {
     console.log('Initial connection check:', status.connected ? 'Connected ✅' : 'Failed ❌');
-    
+
     if (!status.connected) {
       console.error('Connection details:', {
-        url: supabaseUrl,
+        url: supabaseUrl?.substring(0, 15) + '...',
         keyProvided: !!supabaseAnonKey,
         error: status.error
       });
