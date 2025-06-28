@@ -17,6 +17,7 @@ import {
   BarChart3,
   Package,
   TrendingUp,
+  TrendingUp,
   Users,
   ShoppingCart,
   Truck,
@@ -29,12 +30,14 @@ import {
   Scale,
   Scale,
   AlertTriangle,
+  FileText,
   RotateCcw,
 } from "lucide-react"
 
 const navigationItems = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Inventory", url: "/inventory", icon: Package },
+  { title: "Forecasting", url: "/forecasting", icon: TrendingUp },
   { title: "Forecasting", url: "/forecasting", icon: TrendingUp },
   { title: "Suppliers", url: "/suppliers", icon: Users },
   { title: "Purchase Orders", url: "/purchase-orders", icon: ShoppingCart },
@@ -43,6 +46,7 @@ const navigationItems = [
   { title: "Invoices", url: "/invoices", icon: FileText },
   { title: "Payments", url: "/payments", icon: CreditCard },
   { title: "Returns & Refunds", url: "/returns", icon: RotateCcw },
+  { title: "Compliance", url: "/compliance", icon: FileText },
   { title: "Compliance", url: "/compliance", icon: Scale },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Settings", url: "/settings", icon: Settings },

@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,6 +8,7 @@ import { Search, Plus, Package, AlertTriangle, FileText, Edit, Filter, TrendingD
 import { useSupabaseData } from "@/hooks/useSupabaseData"
 import { InventoryItemForm } from "@/components/forms/InventoryItemForm"
 import { useAppStore } from "@/stores/appStore"
+import { useWebSocketSimulator } from "@/hooks/useWebSocketSimulator"
 
 interface InventoryItem {
   id: string
@@ -36,6 +37,12 @@ export default function Inventory() {
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
   const [realTimeUpdates, setRealTimeUpdates] = useState(0)
   
+  // WebSocket simulator for real-time updates
+  const { connectionStatus, updateCount, subscribeToInventoryUpdates } = useWebSocketSimulator({
+    simulateUpdates: true,
+    updateInterval: 15000 // 15 seconds
+  })
+  
   // Get inventory items with related warehouse data
   const { data: inventoryItems, loading, error, refetch } = useSupabaseData<InventoryItem>(
     "inventory_items",
@@ -45,15 +52,17 @@ export default function Inventory() {
     true // Enable real-time updates
   )
 
-  // Update real-time counter when new data comes in
-  useState(() => {
-    if (inventoryItems.length > 0) {
+  // Subscribe to real-time inventory updates
+  useEffect(() => {
+    const unsubscribe = subscribeToInventoryUpdates((update) => {
+      console.log("Received update:", update)
       setRealTimeUpdates(prev => prev + 1)
-    }
-  })
+    })
+    return unsubscribe
+  }, [subscribeToInventoryUpdates])
 
   // Sync local and global search
-  useState(() => {
+  useEffect(() => {
     if (globalSearchTerm !== localSearchTerm) {
       setLocalSearchTerm(globalSearchTerm)
     }
@@ -111,6 +120,12 @@ export default function Inventory() {
     setDialogOpen(true)
   }
 
+  // Calculate inventory metrics
+  const totalItems = inventoryItems.length
+  const lowStockItems = inventoryItems.filter(item => item.on_hand > 0 && item.on_hand <= item.reorder_point).length
+  const outOfStockItems = inventoryItems.filter(item => item.on_hand <= 0).length
+  const totalValue = inventoryItems.reduce((sum, item) => sum + (item.unit_cost || 0) * (item.on_hand || 0), 0)
+
   // Show skeleton loading state
   if (loading && inventoryItems.length === 0) {
     return (
@@ -166,7 +181,7 @@ export default function Inventory() {
             <p className="text-muted-foreground">
               Track and manage your inventory levels with real-time updates
             </p>
-            {realTimeUpdates > 0 && (
+            {updateCount > 0 && (
               <Badge variant="outline" className="bg-blue-50 text-blue-700">
                 <div className="flex items-center gap-1">
                   <span className="h-2 w-2 rounded-full bg-blue-600"></span>
@@ -244,7 +259,7 @@ export default function Inventory() {
           <CardContent className="p-6 flex justify-between items-center">
             <div>
               <h3 className="text-sm font-medium text-muted-foreground">Total Items</h3>
-              <div className="text-2xl font-bold">{inventoryItems.length}</div>
+              <div className="text-2xl font-bold">{totalItems}</div>
             </div>
             <Package className="w-8 h-8 text-primary opacity-70" />
           </CardContent>
@@ -255,9 +270,7 @@ export default function Inventory() {
             <div>
               <h3 className="text-sm font-medium text-muted-foreground">Low Stock</h3>
               <div className="text-2xl font-bold text-yellow-600">
-                {inventoryItems.filter(item => 
-                  item.on_hand > 0 && item.on_hand <= item.reorder_point
-                ).length}
+                {lowStockItems}
               </div>
             </div>
             <AlertTriangle className="w-8 h-8 text-yellow-600 opacity-70" />
@@ -269,7 +282,7 @@ export default function Inventory() {
             <div>
               <h3 className="text-sm font-medium text-muted-foreground">Out of Stock</h3>
               <div className="text-2xl font-bold text-red-600">
-                {inventoryItems.filter(item => item.on_hand <= 0).length}
+                {outOfStockItems}
               </div>
             </div>
             <Package className="w-8 h-8 text-red-600 opacity-70" />
@@ -281,10 +294,7 @@ export default function Inventory() {
             <div>
               <h3 className="text-sm font-medium text-muted-foreground">Total Value</h3>
               <div className="text-2xl font-bold">
-                ${inventoryItems
-                  .reduce((total, item) => 
-                    total + (item.unit_cost || 0) * (item.on_hand || 0), 0
-                  ).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                ${totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </div>
             </div>
             <FileText className="w-8 h-8 text-primary opacity-70" />
@@ -345,7 +355,7 @@ export default function Inventory() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Unit Cost</span>
-                    <span className="font-medium">${item.unit_cost.toFixed(2)}</span>
+                    <span className="font-medium">${item.unit_cost?.toFixed(2) || '0.00'}</span>
                   </div>
                 </div>
                 
