@@ -11,9 +11,17 @@ import { formatDistanceToNow } from "date-fns"
 
 export function NotificationCenter() {
   const { notifications, markNotificationRead, clearNotifications } = useAppStore()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState<boolean>(false)
+  const [hasNewNotifications, setHasNewNotifications] = useState<boolean>(false)
   
   const unreadCount = notifications.filter(n => !n.read).length
+
+  // Check for new notifications when they change
+  useEffect(() => {
+    if (unreadCount > 0) {
+      setHasNewNotifications(true);
+    }
+  }, [unreadCount]);
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -25,6 +33,7 @@ export function NotificationCenter() {
   }
 
   const handleNotificationClick = (id: string) => {
+    console.log(`Reading notification: ${id}`);
     markNotificationRead(id)
   }
 
@@ -32,7 +41,7 @@ export function NotificationCenter() {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="sm" className="relative">
-          <Bell className="h-4 w-4" />
+          <Bell className={`h-4 w-4 ${hasNewNotifications ? 'animate-pulse text-primary' : ''}`} />
           {unreadCount > 0 && (
             <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
               {unreadCount > 99 ? '99+' : unreadCount}

@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { Layout } from "@/components/scm/Layout";
 import { ThemeProvider } from "@/components/common/ThemeProvider";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import Suppliers from "./pages/Suppliers";
@@ -33,20 +34,23 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Dashboard />
-                  </Layout>
-                </ProtectedRoute>
-              } />
+      <ErrorBoundary>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthProvider>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <ErrorBoundary>
+                        <Dashboard />
+                      </ErrorBoundary>
+                    </Layout>
+                  </ProtectedRoute>
+                } />
               <Route path="/inventory" element={
                 <ProtectedRoute>
                   <Layout>
@@ -113,21 +117,27 @@ const App = () => (
               <Route path="/analytics" element={
                 <ProtectedRoute>
                   <Layout>
-                    <Analytics />
+                    <ErrorBoundary>
+                      <Analytics />
+                    </ErrorBoundary>
                   </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/settings" element={
                 <ProtectedRoute>
                   <Layout>
-                    <Settings />
+                    <ErrorBoundary>
+                      <Settings />
+                    </ErrorBoundary>
                   </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/system" element={
                 <ProtectedRoute>
                   <Layout>
-                    <SystemDashboard />
+                    <ErrorBoundary>
+                      <SystemDashboard />
+                    </ErrorBoundary>
                   </Layout>
                 </ProtectedRoute>
               } />
@@ -163,7 +173,8 @@ const App = () => (
             </Routes>
           </AuthProvider>
         </BrowserRouter>
-      </TooltipProvider>
+        </TooltipProvider>
+      </ErrorBoundary>
     </ThemeProvider>
   </QueryClientProvider>
 );

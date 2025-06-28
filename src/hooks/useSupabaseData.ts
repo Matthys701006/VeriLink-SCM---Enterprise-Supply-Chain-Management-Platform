@@ -1,78 +1,123 @@
-
 import { useState, useEffect, useCallback } from "react"
 import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/hooks/use-toast"
+import { useAppStore } from "@/stores/appStore"
 
 export function useSupabaseData<T>(
   table: string,
   select: string = "*",
-  orderBy?: { column: string; ascending?: boolean }
+  orderBy?: { column: string; ascending?: boolean },
+  enableRealtime = false
 ) {
   const [data, setData] = useState<T[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
+  const { addNotification } = useAppStore()
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
-      let query = supabase.from(table as any).select(select)
+      setError(null)
+      
+      console.log(`Fetching data from table: ${table}`);
+      
+      let query = supabase.from(table).select(select);
       
       if (orderBy) {
-        query = query.order(orderBy.column, { ascending: orderBy.ascending ?? true })
+        query = query.order(orderBy.column, { ascending: orderBy.ascending ?? true });
       }
       
-      const { data: result, error } = await query
+      const { data: result, error } = await query;
       
       if (error) {
-        console.error(`Error fetching ${table}:`, error)
-        setError(error.message)
-        toast({
-          title: "Error",
-          description: `Failed to fetch ${table}: ${error.message}`,
-          variant: "destructive",
-        })
+        console.error(`Error fetching ${table}:`, error);
+        setError(error.message);
+        
+        if (!error.message.includes('foreign key constraint')) {
+          toast({
+            title: "Data Fetch Error",
+            description: `Failed to fetch ${table}: ${error.message}`,
+            variant: "destructive",
+          });
+          
+          addNotification({
+            type: 'error',
+            title: 'Data Fetch Error',
+            message: `Failed to fetch ${table}: ${error.message}`
+          });
+        }
+        
+        // Return empty array on error so the UI can still render
+        setData([]);
       } else {
-        setData((result as T[]) || [])
-        setError(null)
+        console.log(`Successfully fetched ${result?.length || 0} records from ${table}`);
+        setData(result || []);
       }
     } catch (err) {
-      console.error(`Unexpected error fetching ${table}:`, err)
-      setError("An unexpected error occurred")
+      console.error(`Unexpected error fetching ${table}:`, err);
+      setError(err.message || "An unexpected error occurred");
+      
       toast({
         title: "Error",
         description: "An unexpected error occurred while fetching data",
         variant: "destructive",
-      })
+      });
+      
+      // Return empty array on error so the UI can still render
+      setData([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [table, select, orderBy?.column, orderBy?.ascending, toast])
+  }, [table, select, orderBy?.column, orderBy?.ascending, toast, addNotification]);
 
   useEffect(() => {
-    fetchData()
+    fetchData();
 
-    // Set up realtime subscription
-    const channel = supabase
-      .channel(`${table}-changes`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: table
-        },
-        () => {
-          console.log(`${table} changed, refetching data...`)
-          fetchData()
-        }
-      )
-      .subscribe()
+    // Set up realtime subscription if enabled
+    let channel;
+    
+    if (enableRealtime) {
+      console.log(`Setting up realtime subscription for table: ${table}`);
+      
+      channel = supabase
+        .channel(`${table}-changes`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: table
+          },
+          (payload) => {
+            console.log(`Realtime update for ${table}:`, payload);
+            fetchData();
+            
+            addNotification({
+              type: 'info',
+              title: 'Data Updated',
+              message: `${table} data has been updated in real-time`
+            });
+          }
+        )
+        .subscribe((status) => {
+          console.log(`Supabase realtime subscription status for ${table}:`, status);
+        });
+    }
 
     return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [fetchData])
+      if (channel) {
+        console.log(`Removing realtime subscription for table: ${table}`);
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [fetchData, enableRealtime, table, addNotification]);
 
-  return { data, loading, error, refetch: fetchData }
+  // Return a safe version of the data to prevent null reference errors
+  return { 
+    data: data || [], 
+    loading, 
+    error, 
+    refetch: fetchData 
+  };
 }
