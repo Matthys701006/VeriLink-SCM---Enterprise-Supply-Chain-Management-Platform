@@ -18,5 +18,7 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // (No build.outDir needed for default)
+  build: {
+    outDir: "dist/client", // <--- This line ensures Vite outputs to dist/client
+  },
 }));
