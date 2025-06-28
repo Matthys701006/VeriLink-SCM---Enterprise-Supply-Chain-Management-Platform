@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Bell, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -19,9 +18,9 @@ export function NotificationCenter() {
   // Check for new notifications when they change
   useEffect(() => {
     if (unreadCount > 0) {
-      setHasNewNotifications(true);
+      setHasNewNotifications(true)
     }
-  }, [unreadCount]);
+  }, [unreadCount])
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -33,7 +32,7 @@ export function NotificationCenter() {
   }
 
   const handleNotificationClick = (id: string) => {
-    console.log(`Reading notification: ${id}`);
+    console.log(`Reading notification: ${id}`)
     markNotificationRead(id)
   }
 
