@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { signInSchema, signUpSchema, type SignInFormData, type SignUpFormData } from '@/schemas/validationSchemas'
 import { useAuth } from '@/hooks/useAuth'
 import { Package, Eye, EyeOff } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from '@/hooks/use-toast'
 
 export function AuthForm() {
   const [showPassword, setShowPassword] = useState(false)
@@ -18,8 +18,8 @@ export function AuthForm() {
   const [activeTab, setActiveTab] = useState('signin')
   const [submitError, setSubmitError] = useState<string | null>(null)
   const { signIn, signUp, resetPassword, loading: authLoading } = useAuth()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
-  const { toast } = useToast()
 
   // Clear errors when switching tabs
   useEffect(() => {
@@ -46,6 +46,7 @@ export function AuthForm() {
 
   const onSignIn = async (data: SignInFormData) => {
     try {
+      setIsSubmitting(true)
       setSubmitError(null)
       const { error } = await signIn(data.email, data.password)
       if (error) {
@@ -56,17 +57,23 @@ export function AuthForm() {
       
       toast({
         title: "Success",
-        description: "You have been signed in successfully",
+        description: "Signing you in...",
       })
+
+      // Brief delay to allow the toast to be seen before navigation
+      await new Promise(resolve => setTimeout(resolve, 500))
       navigate('/')
     } catch (err) {
       console.error('Unexpected error during sign in:', err)
       setSubmitError('An unexpected error occurred. Please try again.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   const onSignUp = async (data: SignUpFormData) => {
     try {
+      setIsSubmitting(true)
       setSubmitError(null)
       const { error } = await signUp(data.email, data.password, data.fullName)
       if (error) {
@@ -77,12 +84,14 @@ export function AuthForm() {
       
       toast({
         title: "Account created",
-        description: "Your account has been created. Please sign in to continue.",
+        description: "Your account has been created successfully.",
       })
       setActiveTab('signin')
     } catch (err) {
       console.error('Unexpected error during sign up:', err)
       setSubmitError('An unexpected error occurred. Please try again.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -98,7 +107,7 @@ export function AuthForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       {/* Connection status debug */}
-      <div className="fixed bottom-0 right-0 p-1 text-xs bg-gray-100 text-gray-700 opacity-50">
+      <div className="fixed bottom-0 right-0 p-2 text-xs bg-gray-100 text-gray-700 opacity-70">
         ENV: {import.meta.env.VITE_SUPABASE_URL ? '✓' : '✗'}
       </div>
       <Card className="w-full max-w-md">
@@ -182,9 +191,9 @@ export function AuthForm() {
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={signInForm.formState.isSubmitting || authLoading}
+                    disabled={signInForm.formState.isSubmitting || authLoading || isSubmitting}
                   >
-                    {signInForm.formState.isSubmitting || authLoading ? 'Signing in...' : 'Sign In'}
+                    {signInForm.formState.isSubmitting || authLoading || isSubmitting ? 'Signing in...' : 'Sign In'}
                   </Button>
                   
                   <Button
@@ -211,6 +220,8 @@ export function AuthForm() {
                         <FormControl>
                           <Input
                             placeholder="Enter your full name"
+                            autoComplete="name"
+                            disabled={isSubmitting}
                             {...field}
                           />
                         </FormControl>
@@ -229,6 +240,8 @@ export function AuthForm() {
                           <Input
                             type="email"
                             placeholder="Enter your email"
+                            autoComplete="email"
+                            disabled={isSubmitting}
                             {...field}
                           />
                         </FormControl>
@@ -247,6 +260,8 @@ export function AuthForm() {
                           <div className="relative">
                             <Input
                               type={showPassword ? 'text' : 'password'}
+                              autoComplete="new-password"
+                              disabled={isSubmitting}
                               placeholder="Create a password"
                               {...field}
                             />
@@ -280,6 +295,8 @@ export function AuthForm() {
                           <div className="relative">
                             <Input
                               type={showConfirmPassword ? 'text' : 'password'}
+                              autoComplete="new-password"
+                              disabled={isSubmitting}
                               placeholder="Confirm your password"
                               {...field}
                             />
@@ -312,9 +329,9 @@ export function AuthForm() {
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={signUpForm.formState.isSubmitting || authLoading}
+                    disabled={signUpForm.formState.isSubmitting || authLoading || isSubmitting}
                   >
-                    {signUpForm.formState.isSubmitting || authLoading ? 'Creating account...' : 'Create Account'}
+                    {signUpForm.formState.isSubmitting || authLoading || isSubmitting ? 'Creating account...' : 'Create Account'}
                   </Button>
                 </form>
               </Form>
