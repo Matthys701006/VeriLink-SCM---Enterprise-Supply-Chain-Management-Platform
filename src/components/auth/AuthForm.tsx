@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { signInSchema, signUpSchema, type SignInFormData, type SignUpFormData } from '@/schemas/validationSchemas'
 import { useAuth } from '@/hooks/useAuth'
 import { Package, Eye, EyeOff } from 'lucide-react'
+import { checkConnection } from '@/integrations/supabase/client'
 import { toast } from '@/hooks/use-toast'
 
 export function AuthForm() {
@@ -18,6 +19,15 @@ export function AuthForm() {
   const [activeTab, setActiveTab] = useState('signin')
   const [submitError, setSubmitError] = useState<string | null>(null)
   const { signIn, signUp, resetPassword, loading: authLoading } = useAuth()
+  const [connectionStatus, setConnectionStatus] = useState<{
+    checked: boolean;
+    connected: boolean;
+    error: string | null;
+  }>({
+    checked: false,
+    connected: false,
+    error: null
+  })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
 
@@ -44,6 +54,20 @@ export function AuthForm() {
     },
   })
 
+  // Check connection on mount
+  useEffect(() => {
+    const testConnection = async () => {
+      const result = await checkConnection()
+      setConnectionStatus({
+        checked: true,
+        connected: result.connected,
+        error: result.error || null
+      })
+    }
+    
+    testConnection()
+  }, [])
+  
   const onSignIn = async (data: SignInFormData) => {
     try {
       setIsSubmitting(true)
@@ -106,10 +130,6 @@ export function AuthForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      {/* Connection status debug */}
-      <div className="fixed bottom-0 right-0 p-2 text-xs bg-gray-100 text-gray-700 opacity-70">
-        ENV: {import.meta.env.VITE_SUPABASE_URL ? '✓' : '✗'}
-      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
@@ -129,6 +149,19 @@ export function AuthForm() {
             </TabsList>
             
             <TabsContent value="signin" className="space-y-4">
+              {/* Connection warning */}
+              {connectionStatus.checked && !connectionStatus.connected && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 text-sm rounded-md mb-4">
+                  <p className="font-medium">Connection Issue</p>
+                  <p className="text-xs mt-1">
+                    Not connected to Supabase. Sign-in may not work properly.
+                    {connectionStatus.error && (
+                      <span className="block mt-1 text-xs break-words">{connectionStatus.error}</span>
+                    )}
+                  </p>
+                </div>
+              )}
+
               <Form {...signInForm}>
                 <form onSubmit={signInForm.handleSubmit(onSignIn)} className="space-y-4">
                   <FormField
@@ -209,6 +242,19 @@ export function AuthForm() {
             </TabsContent>
             
             <TabsContent value="signup" className="space-y-4">
+              {/* Connection warning for signup too */}
+              {connectionStatus.checked && !connectionStatus.connected && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 text-sm rounded-md mb-4">
+                  <p className="font-medium">Connection Issue</p>
+                  <p className="text-xs mt-1">
+                    Not connected to Supabase. Sign-up may not work properly.
+                    {connectionStatus.error && (
+                      <span className="block mt-1 text-xs break-words">{connectionStatus.error}</span>
+                    )}
+                  </p>
+                </div>
+              )}
+
               <Form {...signUpForm}>
                 <form onSubmit={signUpForm.handleSubmit(onSignUp)} className="space-y-4">
                   <FormField

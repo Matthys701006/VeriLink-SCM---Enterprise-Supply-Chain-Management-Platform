@@ -9,6 +9,10 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { Layout } from "@/components/scm/Layout";
 import { ThemeProvider } from "@/components/common/ThemeProvider";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import { ConnectionPrompt } from "@/components/ConnectionPrompt";
+import { useEffect, useState } from "react";
+import { checkConnection } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import Suppliers from "./pages/Suppliers";
@@ -31,8 +35,50 @@ import { ReturnsRefunds } from "@/components/scm/ReturnsRefunds";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+const App = () => {
+  const [showConnectionPrompt, setShowConnectionPrompt] = useState(false);
+  
+  // Check if Supabase connection is set up
+  useEffect(() => {
+    const checkSupabaseConnection = async () => {
+      // First check if env vars are set
+      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        console.log('Supabase credentials missing, prompting for connection');
+        setShowConnectionPrompt(true);
+        return;
+      }
+      
+      // Then check if connection works
+      const result = await checkConnection();
+      if (!result.connected) {
+        console.warn('Supabase connection failed:', result.error);
+        setShowConnectionPrompt(true);
+      }
+    };
+    
+    checkSupabaseConnection();
+  }, []);
+  
+  const handleConnect = (url: string, key: string) => {
+    // We'll need to reload the page for env vars to take effect
+    // Set temporary localStorage values
+    localStorage.setItem('supabase-url', url);
+    localStorage.setItem('supabase-key', key);
+    
+    // Show toast before reloading
+    toast({
+      title: "Connecting to Supabase",
+      description: "Reloading the application with new connection settings"
+    });
+    
+    // Give toast time to show, then reload
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
+  };
+  
+  return (
+    <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <ErrorBoundary>
         <TooltipProvider>
@@ -174,9 +220,16 @@ const App = () => (
           </AuthProvider>
         </BrowserRouter>
         </TooltipProvider>
+        
+        {/* Connection Prompt */}
+        <ConnectionPrompt
+          isOpen={showConnectionPrompt}
+          onConnect={handleConnect}
+        />
       </ErrorBoundary>
     </ThemeProvider>
   </QueryClientProvider>
-);
+  );
+}
 
 export default App;
