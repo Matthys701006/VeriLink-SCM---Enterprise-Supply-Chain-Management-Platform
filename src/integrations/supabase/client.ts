@@ -1,9 +1,9 @@
 // This file handles the Supabase client setup
 import { createClient } from '@supabase/supabase-js';
 
-// Get environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// First check for credentials in localStorage, then fall back to environment variables
+const supabaseUrl = localStorage.getItem('supabase-url') || import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = localStorage.getItem('supabase-key') || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 console.log('Initializing Supabase client with URL:', supabaseUrl ? 'Set' : 'Not set');
 

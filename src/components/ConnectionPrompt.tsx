@@ -36,10 +36,10 @@ export function ConnectionPrompt({ onConnect, isOpen }: ConnectionPromptProps) {
       // Save to localStorage first for immediate use
       localStorage.setItem('supabase-url', url);
       localStorage.setItem('supabase-key', key);
-      
+
       // Update the .env variables and reload
       onConnect(url, key);
-      
+
       toast({
         title: "Connection Saved",
         description: "Supabase connection details have been saved.",
@@ -58,7 +58,7 @@ export function ConnectionPrompt({ onConnect, isOpen }: ConnectionPromptProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md mx-auto">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Database className="h-5 w-5" />
