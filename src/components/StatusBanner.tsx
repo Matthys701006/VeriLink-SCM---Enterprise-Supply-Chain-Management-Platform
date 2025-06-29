@@ -7,7 +7,10 @@ import { checkConnection } from '@/integrations/supabase/client';
 export function StatusBanner() {
   const [status, setStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
   const [error, setError] = useState<string | null>(null);
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState<boolean>(true);
+  const [reconnectMode, setReconnectMode] = useState<boolean>(false);
+  const [url, setUrl] = useState<string>('');
+  const [key, setKey] = useState<string>('');
 
   const checkConnectionStatus = async () => {
     setStatus('checking');
@@ -29,6 +32,31 @@ export function StatusBanner() {
       setStatus('disconnected');
       setError('Unexpected error checking connection');
     }
+  };
+
+  // Function to handle reconnection
+  const handleReconnect = () => {
+    setReconnectMode(true);
+  };
+  
+  const saveConnection = () => {
+    if (!url || !key) {
+      setError('Please provide both URL and API key');
+      return;
+    }
+    
+    // Save to localStorage for persistence
+    localStorage.setItem('supabase-url', url);
+    localStorage.setItem('supabase-key', key);
+    
+    // Show message about reloading
+    setStatus('checking');
+    setError('Saving connection details. Page will reload momentarily.');
+    
+    // Reload the page to apply changes
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
   };
 
   useEffect(() => {
@@ -53,13 +81,61 @@ export function StatusBanner() {
     <Alert 
       className={`
         fixed top-16 left-1/2 transform -translate-x-1/2 w-auto max-w-md z-40 shadow-lg
-        ${status === 'connected' ? 'bg-green-50 border-green-300 text-green-800' : 
+        ${reconnectMode ? 'bg-blue-50 border-blue-300 text-blue-800' :
+          status === 'connected' ? 'bg-green-50 border-green-300 text-green-800' : 
           status === 'disconnected' ? 'bg-red-50 border-red-300 text-red-800' :
           'bg-blue-50 border-blue-300 text-blue-800'
         }
       `}
     >
-      {status === 'checking' ? (
+      {reconnectMode ? (
+        <>
+          <div className="space-y-3">
+            <AlertTitle>Reconnect to Supabase</AlertTitle>
+            <AlertDescription>
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Supabase URL</label>
+                  <input 
+                    type="text" 
+                    value={url} 
+                    onChange={(e) => setUrl(e.target.value)}
+                    className="w-full text-sm p-1.5 rounded border border-blue-300 bg-white/80"
+                    placeholder="https://your-project.supabase.co"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Supabase Anon Key</label>
+                  <input 
+                    type="text" 
+                    value={key} 
+                    onChange={(e) => setKey(e.target.value)}
+                    className="w-full text-sm p-1.5 rounded border border-blue-300 bg-white/80"
+                    placeholder="eyJhbGciOiJS..."
+                  />
+                </div>
+                <div className="flex justify-end gap-2 mt-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-blue-700 border-blue-300 hover:bg-blue-100"
+                    onClick={() => setReconnectMode(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    variant="default"
+                    size="sm" 
+                    onClick={saveConnection}
+                  >
+                    Connect
+                  </Button>
+                </div>
+              </div>
+            </AlertDescription>
+          </div>
+        </>
+      ) : status === 'checking' ? (
         <>
           <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
           <AlertTitle>Checking Connection</AlertTitle>
@@ -102,6 +178,14 @@ export function StatusBanner() {
               >
                 <RefreshCw className="w-3 h-3 mr-1" />
                 Retry
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-red-700 border-red-300 hover:bg-red-100 hover:text-red-800"
+                onClick={handleReconnect}
+              >
+                Reconnect
               </Button>
               <Button 
                 variant="outline" 
