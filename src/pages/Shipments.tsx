@@ -1,11 +1,10 @@
-
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Search, Plus, Truck, Calendar, Package, MapPin } from "lucide-react"
+import { Search, Plus, Truck, Calendar, Package, MapPin, FileText } from "lucide-react"
 import { useSupabaseData } from "@/hooks/useSupabaseData"
 import { ShipmentForm } from "@/components/forms/ShipmentForm"
 import { DocumentUpload } from "@/components/common/DocumentUpload"
@@ -14,14 +13,12 @@ interface Shipment {
   id: string
   shipment_number: string
   status: string
-  planned_delivery_date: string
-  actual_delivery_date: string
-  total_weight: number
-  shipping_cost: number
-  priority: string
-  destination_address: string
-  package_count: number
+  origin: string
+  destination: string
+  expected_delivery: string
+  carrier: string
   tracking_number: string
+  created_at: string
 }
 
 interface Document {
@@ -35,30 +32,33 @@ interface Document {
 
 export default function Shipments() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingShipment, setEditingShipment] = useState<Shipment | null>(null)
+  const [documentDialogOpen, setDocumentDialogOpen] = useState(false)
+  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
   const [documents, setDocuments] = useState<Document[]>([])
-  const { data: shipments, loading, error, refetch } = useSupabaseData<Shipment>(
+
+  const { data: shipments, loading, error } = useSupabaseData<Shipment>(
     "shipments",
-    "id, shipment_number, status, planned_delivery_date, actual_delivery_date, total_weight, shipping_cost, priority, destination_address, package_count, tracking_number",
-    { column: "planned_delivery_date", ascending: false }
+    "id, shipment_number, status, origin, destination, expected_delivery, carrier, tracking_number, created_at",
+    { column: "created_at", ascending: false }
   )
 
   const filteredShipments = shipments.filter(shipment =>
     shipment.shipment_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
     shipment.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    shipment.tracking_number?.toLowerCase().includes(searchTerm.toLowerCase())
+    shipment.origin.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    shipment.destination.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
+      case "in_transit":
+        return "bg-yellow-100 text-yellow-800"
       case "delivered":
         return "bg-green-100 text-green-800"
-      case "in_transit":
-        return "bg-blue-100 text-blue-800"
       case "pending":
-        return "bg-yellow-100 text-yellow-800"
-      case "delayed":
-        return "bg-red-100 text-red-800"
+        return "bg-blue-100 text-blue-800"
       case "cancelled":
         return "bg-gray-100 text-gray-800"
       default:
@@ -66,30 +66,27 @@ export default function Shipments() {
     }
   }
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority?.toLowerCase()) {
-      case "high":
-        return "bg-red-100 text-red-800"
-      case "medium":
-        return "bg-yellow-100 text-yellow-800"
-      case "low":
-        return "bg-green-100 text-green-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
+  const handleFormSuccess = () => {
+    setDialogOpen(false)
+    setEditingShipment(null)
   }
 
-  const handleCreateSuccess = () => {
-    setIsCreateDialogOpen(false)
-    refetch()
+  const handleEdit = (shipment: Shipment) => {
+    setEditingShipment(shipment)
+    setDialogOpen(true)
   }
 
-  const handleDocumentUploaded = (document: Document) => {
-    setDocuments(prev => [...prev, document])
+  const handleDocuments = (shipment: Shipment) => {
+    setSelectedShipment(shipment)
+    setDocumentDialogOpen(true)
   }
 
-  const handleDocumentDeleted = (documentId: string) => {
-    setDocuments(prev => prev.filter(doc => doc.id !== documentId))
+  const handleDocumentUploaded = (doc: Document) => {
+    setDocuments(prev => [...prev, doc])
+  }
+
+  const handleDocumentDeleted = (id: string) => {
+    setDocuments(prev => prev.filter(d => d.id !== id))
   }
 
   if (loading) {
@@ -112,25 +109,34 @@ export default function Shipments() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Shipment Tracking</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 bg-clip-text text-transparent">
+            Shipments
+          </h1>
           <p className="text-muted-foreground">
-            Monitor your shipments and delivery status
+            Track and manage your shipments
           </p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button 
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              onClick={() => setEditingShipment(null)}
+            >
               <Plus className="w-4 h-4 mr-2" />
-              Create Shipment
+              Add Shipment
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create Shipment</DialogTitle>
+              <DialogTitle>
+                {editingShipment ? "Edit Shipment" : "Add New Shipment"}
+              </DialogTitle>
             </DialogHeader>
-            <ShipmentForm 
-              onSuccess={handleCreateSuccess}
-              onCancel={() => setIsCreateDialogOpen(false)}
+            <ShipmentForm
+              onSuccess={handleFormSuccess}
+              onCancel={() => setDialogOpen(false)}
+              initialData={editingShipment || undefined}
+              shipmentId={editingShipment?.id}
             />
           </DialogContent>
         </Dialog>
@@ -146,106 +152,106 @@ export default function Shipments() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        <Badge variant="outline" className="bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 border-blue-200">
+          Total: {shipments.length}
+        </Badge>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <div className="grid gap-4 md:grid-cols-2">
-            {filteredShipments.map((shipment) => (
-              <Card key={shipment.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Truck className="w-5 h-5 text-primary" />
-                      <div>
-                        <CardTitle className="text-lg">{shipment.shipment_number}</CardTitle>
-                        {shipment.tracking_number && (
-                          <p className="text-sm text-muted-foreground">
-                            Track: {shipment.tracking_number}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end space-y-1">
-                      <Badge variant="outline" className={getStatusColor(shipment.status)}>
-                        {shipment.status.replace('_', ' ')}
-                      </Badge>
-                      {shipment.priority && (
-                        <Badge variant="outline" className={getPriorityColor(shipment.priority)}>
-                          {shipment.priority}
-                        </Badge>
-                      )}
-                    </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {filteredShipments.map((shipment) => (
+          <Card key={shipment.id} className="hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500">
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                    <Truck className="w-5 h-5 text-white" />
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Package className="w-4 h-4 text-muted-foreground" />
-                      <div className="text-sm">
-                        <span className="font-medium">{shipment.package_count || 1} packages</span>
-                        {shipment.total_weight && (
-                          <span className="text-muted-foreground ml-2">
-                            • {shipment.total_weight} kg
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="w-4 h-4 text-muted-foreground" />
-                      <div className="text-sm">
-                        <p>Planned: {new Date(shipment.planned_delivery_date).toLocaleDateString()}</p>
-                        {shipment.actual_delivery_date && (
-                          <p>Delivered: {new Date(shipment.actual_delivery_date).toLocaleDateString()}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {shipment.destination_address && (
-                      <div className="flex items-start space-x-2">
-                        <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
-                        <p className="text-sm text-muted-foreground">
-                          {shipment.destination_address}
-                        </p>
-                      </div>
-                    )}
-
-                    {shipment.shipping_cost && (
-                      <div className="pt-2 border-t">
-                        <p className="text-sm">
-                          <span className="font-medium">Cost: </span>
-                          <span className="font-bold">${shipment.shipping_cost.toLocaleString()}</span>
-                        </p>
-                      </div>
-                    )}
+                  <div>
+                    <CardTitle className="text-lg">{shipment.shipment_number}</CardTitle>
+                    <p className="text-sm text-muted-foreground font-mono">{shipment.carrier}</p>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                </div>
+                <div className="flex flex-col items-end space-y-2">
+                  <Badge variant="outline" className={getStatusColor(shipment.status)}>
+                    {shipment.status.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                  </Badge>
+                  <div className="flex space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(shipment)}
+                    >
+                      <Package className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDocuments(shipment)}
+                    >
+                      <FileText className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm">Expected: {new Date(shipment.expected_delivery).toLocaleDateString()}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <MapPin className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm">{shipment.origin} → {shipment.destination}</span>
+                </div>
+                {shipment.tracking_number && (
+                  <div className="flex items-center space-x-2">
+                    <Package className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-mono">{shipment.tracking_number}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-          {filteredShipments.length === 0 && !loading && (
-            <div className="text-center py-12">
-              <Truck className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No shipments found</h3>
-              <p className="text-muted-foreground">
-                {searchTerm ? "Try adjusting your search terms" : "Start by creating your first shipment"}
-              </p>
-            </div>
+      {/* Document Management Dialog */}
+      <Dialog open={documentDialogOpen} onOpenChange={setDocumentDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Documents - {selectedShipment?.shipment_number}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedShipment && (
+            <DocumentUpload
+              entityId={selectedShipment.id}
+              entityType="shipment"
+              documents={documents}
+              onDocumentUploaded={handleDocumentUploaded}
+              onDocumentDeleted={handleDocumentDeleted}
+            />
           )}
-        </div>
+        </DialogContent>
+      </Dialog>
 
-        <div className="lg:col-span-1">
-          <DocumentUpload
-            entityId="shipments"
-            entityType="shipments"
-            documents={documents}
-            onDocumentUploaded={handleDocumentUploaded}
-            onDocumentDeleted={handleDocumentDeleted}
-          />
+      {filteredShipments.length === 0 && !loading && (
+        <div className="text-center py-12">
+          <Truck className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium mb-2">No shipments found</h3>
+          <p className="text-muted-foreground mb-4">
+            {searchTerm ? "Try adjusting your search terms" : "Start by adding your first shipment"}
+          </p>
+          <Button 
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            onClick={() => setDialogOpen(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Shipment
+          </Button>
         </div>
-      </div>
+      )}
     </div>
   )
 }
