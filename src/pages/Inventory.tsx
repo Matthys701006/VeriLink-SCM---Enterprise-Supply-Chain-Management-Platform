@@ -9,6 +9,7 @@ import { useSupabaseData } from "@/hooks/useSupabaseData"
 import { InventoryItemForm } from "@/components/forms/InventoryItemForm"
 import { useAppStore } from "@/stores/appStore"
 import { useWebSocketSimulator } from "@/hooks/useWebSocketSimulator"
+import { DocumentUpload } from "@/components/common/DocumentUpload" // <-- import DocumentUpload
 
 interface InventoryItem {
   id: string
@@ -28,6 +29,15 @@ interface InventoryItem {
   }
 }
 
+interface Document {
+  id: string
+  name: string
+  type: string
+  size: number
+  url: string
+  uploadedAt: Date
+}
+
 export default function Inventory() {
   const { searchTerm: globalSearchTerm, setSearchTerm: setGlobalSearchTerm } = useAppStore()
   const [localSearchTerm, setLocalSearchTerm] = useState("")
@@ -36,7 +46,12 @@ export default function Inventory() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
   const [realTimeUpdates, setRealTimeUpdates] = useState(0)
-  
+
+  // Document dialog state
+  const [documentDialogOpen, setDocumentDialogOpen] = useState(false)
+  const [selectedInventoryItem, setSelectedInventoryItem] = useState<InventoryItem | null>(null)
+  const [documents, setDocuments] = useState<Document[]>([])
+
   // WebSocket simulator for real-time updates
   const { connectionStatus, updateCount, subscribeToInventoryUpdates } = useWebSocketSimulator({
     simulateUpdates: true,
@@ -118,6 +133,14 @@ export default function Inventory() {
   const handleEdit = (item: InventoryItem) => {
     setEditingItem(item)
     setDialogOpen(true)
+  }
+
+  // Handle document dialog open for an inventory item
+  const handleDocuments = (item: InventoryItem) => {
+    setSelectedInventoryItem(item)
+    setDocumentDialogOpen(true)
+    // TODO: If integrating with backend, fetch docs for this item here
+    // For now, keeps local documents state, or you could scope to item.id
   }
 
   // Calculate inventory metrics
@@ -336,9 +359,14 @@ export default function Inventory() {
                       <p className="text-xs text-muted-foreground">{item.sku}</p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => handleEdit(item)}>
-                    <Edit className="w-4 h-4" />
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => handleEdit(item)}>
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDocuments(item)}>
+                      <FileText className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
                 
                 <div className="space-y-2 mb-4">
@@ -402,6 +430,26 @@ export default function Inventory() {
           )
         })}
       </div>
+
+      {/* Document Management Dialog */}
+      <Dialog open={documentDialogOpen} onOpenChange={setDocumentDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Documents - {selectedInventoryItem?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedInventoryItem && (
+            <DocumentUpload
+              entityId={selectedInventoryItem.id}
+              entityType="inventory_item"
+              documents={documents}
+              onDocumentUploaded={(doc) => setDocuments([...documents, doc])}
+              onDocumentDeleted={(id) => setDocuments(documents.filter(d => d.id !== id))}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Empty State */}
       {filteredItems.length === 0 && (
