@@ -1,4 +1,3 @@
-
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -24,13 +23,22 @@ interface Supplier {
   ai_risk_score: number
 }
 
+interface Document {
+  id: string
+  name: string
+  type: string
+  size: number
+  url: string
+  uploadedAt: Date
+}
+
 export default function Suppliers() {
   const [searchTerm, setSearchTerm] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null)
   const [documentDialogOpen, setDocumentDialogOpen] = useState(false)
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null)
-  const [documents, setDocuments] = useState<any[]>([])
+  const [documents, setDocuments] = useState<Document[]>([])
 
   const { data: suppliers, loading, error } = useSupabaseData<Supplier>(
     "suppliers",
@@ -69,6 +77,14 @@ export default function Suppliers() {
   const handleDocuments = (supplier: Supplier) => {
     setSelectedSupplier(supplier)
     setDocumentDialogOpen(true)
+  }
+
+  const handleDocumentUploaded = (doc: Document) => {
+    setDocuments(prev => [...prev, doc])
+  }
+
+  const handleDocumentDeleted = (id: string) => {
+    setDocuments(prev => prev.filter(d => d.id !== id))
   }
 
   if (loading) {
@@ -240,8 +256,8 @@ export default function Suppliers() {
               entityId={selectedSupplier.id}
               entityType="supplier"
               documents={documents}
-              onDocumentUploaded={(doc) => setDocuments([...documents, doc])}
-              onDocumentDeleted={(id) => setDocuments(documents.filter(d => d.id !== id))}
+              onDocumentUploaded={handleDocumentUploaded}
+              onDocumentDeleted={handleDocumentDeleted}
             />
           )}
         </DialogContent>
