@@ -8,18 +8,15 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { Layout } from "@/components/scm/Layout";
 import { ThemeProvider } from "@/components/common/ThemeProvider";
-import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import Suppliers from "./pages/Suppliers";
 import PurchaseOrders from "./pages/PurchaseOrders";
 import Shipments from "./pages/Shipments";
 import Warehouses from "./pages/Warehouses";
-import Forecasting from "./pages/Forecasting";
 import Invoices from "./pages/Invoices";
 import Payments from "./pages/Payments";
 import Analytics from "./pages/Analytics";
-import Compliance from "./pages/Compliance";
 import Settings from "./pages/Settings";
 import SystemDashboard from "./pages/SystemDashboard";
 import Auth from "./pages/Auth";
@@ -31,27 +28,23 @@ import { ReturnsRefunds } from "@/components/scm/ReturnsRefunds";
 
 const queryClient = new QueryClient();
 
-const App = () => {
-  return (
-    <QueryClientProvider client={queryClient}>
+const App = () => (
+  <QueryClientProvider client={queryClient}>
     <ThemeProvider>
-      <ErrorBoundary>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AuthProvider>
-              <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/" element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <ErrorBoundary>
-                        <Dashboard />
-                      </ErrorBoundary>
-                    </Layout>
-                  </ProtectedRoute>
-                } />
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Dashboard />
+                  </Layout>
+                </ProtectedRoute>
+              } />
               <Route path="/inventory" element={
                 <ProtectedRoute>
                   <Layout>
@@ -80,20 +73,6 @@ const App = () => {
                   </Layout>
                 </ProtectedRoute>
               } />
-              <Route path="/forecasting" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Forecasting />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/compliance" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Compliance />
-                  </Layout>
-                </ProtectedRoute>
-              } />
               <Route path="/warehouses" element={
                 <ProtectedRoute>
                   <Layout>
@@ -118,27 +97,21 @@ const App = () => {
               <Route path="/analytics" element={
                 <ProtectedRoute>
                   <Layout>
-                    <ErrorBoundary>
-                      <Analytics />
-                    </ErrorBoundary>
+                    <Analytics />
                   </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/settings" element={
                 <ProtectedRoute>
                   <Layout>
-                    <ErrorBoundary>
-                      <Settings />
-                    </ErrorBoundary>
+                    <Settings />
                   </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/system" element={
                 <ProtectedRoute>
                   <Layout>
-                    <ErrorBoundary>
-                      <SystemDashboard />
-                    </ErrorBoundary>
+                    <SystemDashboard />
                   </Layout>
                 </ProtectedRoute>
               } />
@@ -174,11 +147,9 @@ const App = () => {
             </Routes>
           </AuthProvider>
         </BrowserRouter>
-        </TooltipProvider>
-      </ErrorBoundary>
+      </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
-  );
-}
+);
 
 export default App;
