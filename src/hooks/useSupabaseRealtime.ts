@@ -105,4 +105,3 @@ export function useSupabaseRealtime<T>(
 
   return { data, loading, error, refetch }
 }
-
