@@ -1,10 +1,9 @@
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Upload, Download, Trash2, FileText, X } from "lucide-react"
+import { Upload, Download, Trash2, FileText } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface Document {
@@ -34,14 +33,18 @@ export function DocumentUpload({
   const [uploading, setUploading] = useState(false)
   const { toast } = useToast()
 
+  // Helper to safely parse file date for server-fetched docs as string
+  const getUploadedAt = (uploadedAt: Date | string) =>
+    uploadedAt instanceof Date ? uploadedAt : new Date(uploadedAt)
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (!files || files.length === 0) return
 
     setUploading(true)
     try {
-      for (const file of files) {
-        // Mock upload - in real implementation would upload to Supabase Storage
+      for (const file of Array.from(files)) {
+        // Mock upload - replace with actual upload logic as needed
         const mockDocument: Document = {
           id: crypto.randomUUID(),
           name: file.name,
@@ -74,7 +77,10 @@ export function DocumentUpload({
     const link = window.document.createElement('a')
     link.href = document.url
     link.download = document.name
+    link.style.display = "none"
+    window.document.body.appendChild(link)
     link.click()
+    window.document.body.removeChild(link)
   }
 
   const handleDelete = (documentId: string) => {
@@ -110,18 +116,20 @@ export function DocumentUpload({
             disabled={uploading}
             className="hidden"
             id={`file-upload-${entityId}`}
+            data-testid="file-upload-input"
           />
           <Button
             onClick={() => window.document.getElementById(`file-upload-${entityId}`)?.click()}
             disabled={uploading}
             className="flex items-center gap-2"
+            type="button"
           >
             <Upload className="w-4 h-4" />
             {uploading ? "Uploading..." : "Upload Documents"}
           </Button>
         </div>
 
-        {documents.length > 0 && (
+        {Array.isArray(documents) && documents.length > 0 && (
           <div className="space-y-2">
             {documents.map((document) => (
               <div key={document.id} className="flex items-center justify-between p-3 border rounded-lg">
@@ -131,8 +139,10 @@ export function DocumentUpload({
                     <p className="font-medium">{document.name}</p>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span>{formatFileSize(document.size)}</span>
-                      <Badge variant="outline">{document.type}</Badge>
-                      <span>{document.uploadedAt.toLocaleDateString()}</span>
+                      <Badge variant="outline">{document.type || "Unknown"}</Badge>
+                      <span>
+                        {getUploadedAt(document.uploadedAt).toLocaleDateString()}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -141,6 +151,8 @@ export function DocumentUpload({
                     variant="outline"
                     size="sm"
                     onClick={() => handleDownload(document)}
+                    aria-label={`Download ${document.name}`}
+                    type="button"
                   >
                     <Download className="w-4 h-4" />
                   </Button>
@@ -148,6 +160,8 @@ export function DocumentUpload({
                     variant="outline"
                     size="sm"
                     onClick={() => handleDelete(document.id)}
+                    aria-label={`Delete ${document.name}`}
+                    type="button"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -157,7 +171,7 @@ export function DocumentUpload({
           </div>
         )}
 
-        {documents.length === 0 && (
+        {(!Array.isArray(documents) || documents.length === 0) && (
           <div className="text-center py-8 text-muted-foreground">
             <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p>No documents uploaded yet</p>
