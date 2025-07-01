@@ -1,3 +1,5 @@
+# Deploying a frontend app in a subfolder
 [build]
-  publish = "build"
+  base = "frontend"
   command = "npm run build"
+  publish = "frontend/dist"
